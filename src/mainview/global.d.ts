@@ -1,5 +1,5 @@
 import type { ShortcutPayload, VoiceStage } from "../shared/voiceRpc";
-import type { DebugState, PermissionStatus, ShortcutFinishMode, UpdateState } from "./types";
+import type { DebugState, PermissionStatus, RuntimeConfig, ShortcutFinishMode, UpdateState } from "./types";
 
 declare global {
   interface Window {
@@ -14,40 +14,7 @@ declare global {
       cancelRecording(payload: { source: "escape" | "button" }): Promise<{ ok: boolean }>;
       getRuntimeConfig(): Promise<{
         ok: boolean;
-        config: {
-          cancelShortcut: string;
-          shortcutFinishMode: ShortcutFinishMode;
-          audioInputDeviceId: string;
-          debugEnabled: boolean;
-          asrModel: string;
-          asrAppId: string;
-          asrAccessToken: string;
-          asrAccessSecret: string;
-          asrCluster: string;
-          asrAuthMethod: string;
-          asrWsUrl: string;
-          asrResourceId: string;
-          asrFlashUrl: string;
-          asrLanguage: string;
-          asrModelVersion: string;
-          asrSsdVersion: string;
-          asrCommonWords: string[];
-          asrEnableChannelSplit: boolean;
-          asrEnableDdc: boolean;
-          asrEnableSpeakerInfo: boolean;
-          asrEnablePunc: boolean;
-          asrEnableItn: boolean;
-          asrBoostingTableName: string;
-          asrCorrectTableName: string;
-          asrContext: string;
-          textRefineEnabled: boolean;
-          textRefineProvider: string;
-          textRefineProviderConfigs: Record<string, { apiKey: string; baseUrl: string; model: string }>;
-          textRefineApiKey: string;
-          textRefineBaseUrl: string;
-          textRefineModel: string;
-          textRefinePrompt: string;
-        };
+        config: RuntimeConfig;
       }>;
       getDebugState(): Promise<{
         ok: boolean;
@@ -75,76 +42,10 @@ declare global {
         state: UpdateState;
       }>;
       clearDebugLogs(): Promise<{ ok: boolean }>;
-      setRuntimeConfig(payload: {
-        cancelShortcut?: string;
-        shortcutFinishMode?: ShortcutFinishMode;
-        audioInputDeviceId?: string;
-        debugEnabled?: boolean;
-        asrModel?: string;
-        asrAppId?: string;
-        asrAccessToken?: string;
-        asrAccessSecret?: string;
-        asrCluster?: string;
-        asrAuthMethod?: string;
-        asrWsUrl?: string;
-        asrResourceId?: string;
-        asrFlashUrl?: string;
-        asrLanguage?: string;
-        asrModelVersion?: string;
-        asrSsdVersion?: string;
-        asrCommonWords?: string[];
-        asrEnableChannelSplit?: boolean;
-        asrEnableDdc?: boolean;
-        asrEnableSpeakerInfo?: boolean;
-        asrEnablePunc?: boolean;
-        asrEnableItn?: boolean;
-        asrBoostingTableName?: string;
-        asrCorrectTableName?: string;
-        asrContext?: string;
-        textRefineEnabled?: boolean;
-        textRefineProvider?: string;
-        textRefineProviderConfigs?: Record<string, { apiKey: string; baseUrl: string; model: string }>;
-        textRefineApiKey?: string;
-        textRefineBaseUrl?: string;
-        textRefineModel?: string;
-        textRefinePrompt?: string;
-      }): Promise<{
+      setRuntimeConfig(payload: Partial<RuntimeConfig>): Promise<{
         ok: boolean;
         error?: string;
-        config: {
-          cancelShortcut: string;
-          shortcutFinishMode: ShortcutFinishMode;
-          audioInputDeviceId: string;
-          debugEnabled: boolean;
-          asrModel: string;
-          asrAppId: string;
-          asrAccessToken: string;
-          asrAccessSecret: string;
-          asrCluster: string;
-          asrAuthMethod: string;
-          asrWsUrl: string;
-          asrResourceId: string;
-          asrFlashUrl: string;
-          asrLanguage: string;
-          asrModelVersion: string;
-          asrSsdVersion: string;
-          asrCommonWords: string[];
-          asrEnableChannelSplit: boolean;
-          asrEnableDdc: boolean;
-          asrEnableSpeakerInfo: boolean;
-          asrEnablePunc: boolean;
-          asrEnableItn: boolean;
-          asrBoostingTableName: string;
-          asrCorrectTableName: string;
-          asrContext: string;
-          textRefineEnabled: boolean;
-          textRefineProvider: string;
-          textRefineProviderConfigs: Record<string, { apiKey: string; baseUrl: string; model: string }>;
-          textRefineApiKey: string;
-          textRefineBaseUrl: string;
-          textRefineModel: string;
-          textRefinePrompt: string;
-        };
+        config: RuntimeConfig;
       }>;
       triggerShortcut(payload: { source: "button" }): Promise<{ ok: boolean }>;
       setShortcutPreviewMode(payload: { enabled: boolean }): Promise<{ ok: boolean }>;

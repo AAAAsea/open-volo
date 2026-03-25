@@ -26,6 +26,11 @@ import {
 } from "./lib/shortcut";
 import { applyModeTransform, insertToCurrentInput } from "./lib/text";
 import {
+  createDefaultAsrProviderConfigs,
+  DEFAULT_ASR_PROVIDER,
+  getAsrProviderConfig,
+} from "./lib/asrProvider";
+import {
   createDefaultTextRefineProviderConfigs,
   DEFAULT_TEXT_REFINE_PROVIDER,
   getTextRefineProviderConfig,
@@ -109,6 +114,8 @@ export default function App() {
   const platform = window.volo.platform || "web";
   const showPermissionCenter = platform === "darwin";
   const initialShortcut = getDefaultShortcut(platform);
+  const defaultAsrProviderConfigs = createDefaultAsrProviderConfigs();
+  const activeAsrConfig = getAsrProviderConfig(defaultAsrProviderConfigs, DEFAULT_ASR_PROVIDER);
   const defaultTextRefineProviderConfigs = createDefaultTextRefineProviderConfigs();
   const activeTextRefineConfig = getTextRefineProviderConfig(
     defaultTextRefineProviderConfigs,
@@ -119,27 +126,32 @@ export default function App() {
     shortcutFinishMode: "release",
     audioInputDeviceId: "",
     debugEnabled: false,
+    asrProvider: DEFAULT_ASR_PROVIDER,
+    asrProviderConfigs: defaultAsrProviderConfigs,
     asrModel: "bigmodel_flash",
-    asrAppId: "",
-    asrAccessToken: "",
-    asrAccessSecret: "",
-    asrCluster: "",
-    asrAuthMethod: "token",
-    asrWsUrl: "wss://openspeech.bytedance.com/api/v2/asr",
-    asrResourceId: "volc.bigasr.auc_turbo",
-    asrFlashUrl: "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash",
-    asrLanguage: "",
-    asrModelVersion: "",
-    asrSsdVersion: "",
-    asrCommonWords: [],
-    asrEnableChannelSplit: true,
-    asrEnableDdc: true,
-    asrEnableSpeakerInfo: true,
-    asrEnablePunc: true,
-    asrEnableItn: true,
-    asrBoostingTableName: "",
-    asrCorrectTableName: "",
-    asrContext: "",
+    asrAppId: activeAsrConfig.appId,
+    asrAccessToken: activeAsrConfig.accessToken,
+    asrAccessSecret: activeAsrConfig.accessSecret,
+    asrCluster: activeAsrConfig.cluster,
+    asrAuthMethod: activeAsrConfig.authMethod,
+    asrWsUrl: activeAsrConfig.wsUrl,
+    asrResourceId: activeAsrConfig.resourceId,
+    asrFlashUrl: activeAsrConfig.flashUrl,
+    asrLanguage: activeAsrConfig.language,
+    asrModelVersion: activeAsrConfig.modelVersion,
+    asrSsdVersion: activeAsrConfig.ssdVersion,
+    asrCommonWords: activeAsrConfig.commonWords,
+    asrEnableChannelSplit: activeAsrConfig.enableChannelSplit,
+    asrEnableDdc: activeAsrConfig.enableDdc,
+    asrEnableSpeakerInfo: activeAsrConfig.enableSpeakerInfo,
+    asrEnablePunc: activeAsrConfig.enablePunc,
+    asrEnableItn: activeAsrConfig.enableItn,
+    asrBoostingTableName: activeAsrConfig.boostingTableName,
+    asrCorrectTableName: activeAsrConfig.correctTableName,
+    asrContext: activeAsrConfig.context,
+    asrApiKey: activeAsrConfig.apiKey,
+    asrBaseUrl: activeAsrConfig.baseUrl,
+    asrCompatibleModel: activeAsrConfig.compatibleModel,
     textRefineEnabled: true,
     textRefineProvider: DEFAULT_TEXT_REFINE_PROVIDER,
     textRefineProviderConfigs: defaultTextRefineProviderConfigs,
@@ -973,6 +985,74 @@ export default function App() {
 
   const updateRuntimeConfig = (patch: Partial<RuntimeConfig>) => {
     setRuntimeConfig((prev) => {
+      const nextAsrProvider = patch.asrProvider ?? prev.asrProvider;
+      const nextAsrProviderConfigs = {
+        ...prev.asrProviderConfigs,
+        ...(patch.asrProviderConfigs ?? {}),
+      };
+      const touchedAsrFields =
+        "asrAppId" in patch ||
+        "asrAccessToken" in patch ||
+        "asrAccessSecret" in patch ||
+        "asrCluster" in patch ||
+        "asrAuthMethod" in patch ||
+        "asrWsUrl" in patch ||
+        "asrResourceId" in patch ||
+        "asrFlashUrl" in patch ||
+        "asrLanguage" in patch ||
+        "asrModelVersion" in patch ||
+        "asrSsdVersion" in patch ||
+        "asrCommonWords" in patch ||
+        "asrEnableChannelSplit" in patch ||
+        "asrEnableDdc" in patch ||
+        "asrEnableSpeakerInfo" in patch ||
+        "asrEnablePunc" in patch ||
+        "asrEnableItn" in patch ||
+        "asrBoostingTableName" in patch ||
+        "asrCorrectTableName" in patch ||
+        "asrContext" in patch ||
+        "asrApiKey" in patch ||
+        "asrBaseUrl" in patch ||
+        "asrCompatibleModel" in patch;
+
+      if (touchedAsrFields) {
+        nextAsrProviderConfigs[nextAsrProvider] = {
+          ...nextAsrProviderConfigs[nextAsrProvider],
+          appId: "asrAppId" in patch ? String(patch.asrAppId ?? "") : prev.asrAppId,
+          accessToken:
+            "asrAccessToken" in patch ? String(patch.asrAccessToken ?? "") : prev.asrAccessToken,
+          accessSecret:
+            "asrAccessSecret" in patch ? String(patch.asrAccessSecret ?? "") : prev.asrAccessSecret,
+          cluster: "asrCluster" in patch ? String(patch.asrCluster ?? "") : prev.asrCluster,
+          authMethod: "asrAuthMethod" in patch ? String(patch.asrAuthMethod ?? "") : prev.asrAuthMethod,
+          wsUrl: "asrWsUrl" in patch ? String(patch.asrWsUrl ?? "") : prev.asrWsUrl,
+          resourceId: "asrResourceId" in patch ? String(patch.asrResourceId ?? "") : prev.asrResourceId,
+          flashUrl: "asrFlashUrl" in patch ? String(patch.asrFlashUrl ?? "") : prev.asrFlashUrl,
+          language: "asrLanguage" in patch ? String(patch.asrLanguage ?? "") : prev.asrLanguage,
+          modelVersion:
+            "asrModelVersion" in patch ? String(patch.asrModelVersion ?? "") : prev.asrModelVersion,
+          ssdVersion: "asrSsdVersion" in patch ? String(patch.asrSsdVersion ?? "") : prev.asrSsdVersion,
+          commonWords: "asrCommonWords" in patch ? patch.asrCommonWords ?? [] : prev.asrCommonWords,
+          enableChannelSplit:
+            "asrEnableChannelSplit" in patch ? Boolean(patch.asrEnableChannelSplit) : prev.asrEnableChannelSplit,
+          enableDdc: "asrEnableDdc" in patch ? Boolean(patch.asrEnableDdc) : prev.asrEnableDdc,
+          enableSpeakerInfo:
+            "asrEnableSpeakerInfo" in patch ? Boolean(patch.asrEnableSpeakerInfo) : prev.asrEnableSpeakerInfo,
+          enablePunc: "asrEnablePunc" in patch ? Boolean(patch.asrEnablePunc) : prev.asrEnablePunc,
+          enableItn: "asrEnableItn" in patch ? Boolean(patch.asrEnableItn) : prev.asrEnableItn,
+          boostingTableName:
+            "asrBoostingTableName" in patch ? String(patch.asrBoostingTableName ?? "") : prev.asrBoostingTableName,
+          correctTableName:
+            "asrCorrectTableName" in patch ? String(patch.asrCorrectTableName ?? "") : prev.asrCorrectTableName,
+          context: "asrContext" in patch ? String(patch.asrContext ?? "") : prev.asrContext,
+          apiKey: "asrApiKey" in patch ? String(patch.asrApiKey ?? "") : prev.asrApiKey,
+          baseUrl: "asrBaseUrl" in patch ? String(patch.asrBaseUrl ?? "") : prev.asrBaseUrl,
+          compatibleModel:
+            "asrCompatibleModel" in patch ? String(patch.asrCompatibleModel ?? "") : prev.asrCompatibleModel,
+        };
+      }
+
+      const activeAsrProviderConfig = getAsrProviderConfig(nextAsrProviderConfigs, nextAsrProvider);
       const nextProvider = patch.textRefineProvider ?? prev.textRefineProvider;
       const nextProviderConfigs = {
         ...prev.textRefineProviderConfigs,
@@ -996,6 +1076,57 @@ export default function App() {
       const next = {
         ...prev,
         ...patch,
+        asrProvider: nextAsrProvider,
+        asrProviderConfigs: nextAsrProviderConfigs,
+        asrAppId: "asrAppId" in patch ? String(patch.asrAppId ?? "") : activeAsrProviderConfig.appId,
+        asrAccessToken:
+          "asrAccessToken" in patch ? String(patch.asrAccessToken ?? "") : activeAsrProviderConfig.accessToken,
+        asrAccessSecret:
+          "asrAccessSecret" in patch ? String(patch.asrAccessSecret ?? "") : activeAsrProviderConfig.accessSecret,
+        asrCluster: "asrCluster" in patch ? String(patch.asrCluster ?? "") : activeAsrProviderConfig.cluster,
+        asrAuthMethod:
+          "asrAuthMethod" in patch ? String(patch.asrAuthMethod ?? "") : activeAsrProviderConfig.authMethod,
+        asrWsUrl: "asrWsUrl" in patch ? String(patch.asrWsUrl ?? "") : activeAsrProviderConfig.wsUrl,
+        asrResourceId:
+          "asrResourceId" in patch ? String(patch.asrResourceId ?? "") : activeAsrProviderConfig.resourceId,
+        asrFlashUrl:
+          "asrFlashUrl" in patch ? String(patch.asrFlashUrl ?? "") : activeAsrProviderConfig.flashUrl,
+        asrLanguage:
+          "asrLanguage" in patch ? String(patch.asrLanguage ?? "") : activeAsrProviderConfig.language,
+        asrModelVersion:
+          "asrModelVersion" in patch ? String(patch.asrModelVersion ?? "") : activeAsrProviderConfig.modelVersion,
+        asrSsdVersion:
+          "asrSsdVersion" in patch ? String(patch.asrSsdVersion ?? "") : activeAsrProviderConfig.ssdVersion,
+        asrCommonWords: "asrCommonWords" in patch ? patch.asrCommonWords ?? [] : activeAsrProviderConfig.commonWords,
+        asrEnableChannelSplit:
+          "asrEnableChannelSplit" in patch
+            ? Boolean(patch.asrEnableChannelSplit)
+            : activeAsrProviderConfig.enableChannelSplit,
+        asrEnableDdc:
+          "asrEnableDdc" in patch ? Boolean(patch.asrEnableDdc) : activeAsrProviderConfig.enableDdc,
+        asrEnableSpeakerInfo:
+          "asrEnableSpeakerInfo" in patch
+            ? Boolean(patch.asrEnableSpeakerInfo)
+            : activeAsrProviderConfig.enableSpeakerInfo,
+        asrEnablePunc:
+          "asrEnablePunc" in patch ? Boolean(patch.asrEnablePunc) : activeAsrProviderConfig.enablePunc,
+        asrEnableItn:
+          "asrEnableItn" in patch ? Boolean(patch.asrEnableItn) : activeAsrProviderConfig.enableItn,
+        asrBoostingTableName:
+          "asrBoostingTableName" in patch
+            ? String(patch.asrBoostingTableName ?? "")
+            : activeAsrProviderConfig.boostingTableName,
+        asrCorrectTableName:
+          "asrCorrectTableName" in patch
+            ? String(patch.asrCorrectTableName ?? "")
+            : activeAsrProviderConfig.correctTableName,
+        asrContext: "asrContext" in patch ? String(patch.asrContext ?? "") : activeAsrProviderConfig.context,
+        asrApiKey: "asrApiKey" in patch ? String(patch.asrApiKey ?? "") : activeAsrProviderConfig.apiKey,
+        asrBaseUrl: "asrBaseUrl" in patch ? String(patch.asrBaseUrl ?? "") : activeAsrProviderConfig.baseUrl,
+        asrCompatibleModel:
+          "asrCompatibleModel" in patch
+            ? String(patch.asrCompatibleModel ?? "")
+            : activeAsrProviderConfig.compatibleModel,
         textRefineProvider: nextProvider,
         textRefineProviderConfigs: nextProviderConfigs,
         textRefineApiKey:

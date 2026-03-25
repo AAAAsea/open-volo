@@ -3,6 +3,11 @@ import "./index.css";
 import App from "./App";
 import type { PermissionStatus, UpdateState } from "./types";
 import {
+  createDefaultAsrProviderConfigs,
+  DEFAULT_ASR_PROVIDER,
+  getAsrProviderConfig,
+} from "./lib/asrProvider";
+import {
   createDefaultTextRefineProviderConfigs,
   DEFAULT_TEXT_REFINE_PROVIDER,
   getTextRefineProviderConfig,
@@ -28,6 +33,8 @@ function ensureVoloMock() {
   if (window.volo) return;
 
   let stage: "idle" | "arming" | "recording" | "transcribing" | "refining" = "idle";
+  const defaultAsrProviderConfigs = createDefaultAsrProviderConfigs();
+  const activeAsrConfig = getAsrProviderConfig(defaultAsrProviderConfigs, DEFAULT_ASR_PROVIDER);
   const defaultTextRefineProviderConfigs = createDefaultTextRefineProviderConfigs();
   const activeTextRefineConfig = getTextRefineProviderConfig(
     defaultTextRefineProviderConfigs,
@@ -56,27 +63,32 @@ function ensureVoloMock() {
     shortcutFinishMode: "release" as const,
     audioInputDeviceId: "",
     debugEnabled: false,
+    asrProvider: DEFAULT_ASR_PROVIDER,
+    asrProviderConfigs: defaultAsrProviderConfigs,
     asrModel: "bigmodel_flash",
-    asrAppId: "",
-    asrAccessToken: "",
-    asrAccessSecret: "",
-    asrCluster: "",
-    asrAuthMethod: "token",
-    asrWsUrl: "wss://openspeech.bytedance.com/api/v2/asr",
-    asrResourceId: "volc.bigasr.auc_turbo",
-    asrFlashUrl: "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash",
-    asrLanguage: "",
-    asrModelVersion: "",
-    asrSsdVersion: "",
-    asrCommonWords: [],
-    asrEnableChannelSplit: true,
-    asrEnableDdc: true,
-    asrEnableSpeakerInfo: true,
-    asrEnablePunc: true,
-    asrEnableItn: true,
-    asrBoostingTableName: "",
-    asrCorrectTableName: "",
-    asrContext: "",
+    asrAppId: activeAsrConfig.appId,
+    asrAccessToken: activeAsrConfig.accessToken,
+    asrAccessSecret: activeAsrConfig.accessSecret,
+    asrCluster: activeAsrConfig.cluster,
+    asrAuthMethod: activeAsrConfig.authMethod,
+    asrWsUrl: activeAsrConfig.wsUrl,
+    asrResourceId: activeAsrConfig.resourceId,
+    asrFlashUrl: activeAsrConfig.flashUrl,
+    asrLanguage: activeAsrConfig.language,
+    asrModelVersion: activeAsrConfig.modelVersion,
+    asrSsdVersion: activeAsrConfig.ssdVersion,
+    asrCommonWords: activeAsrConfig.commonWords,
+    asrEnableChannelSplit: activeAsrConfig.enableChannelSplit,
+    asrEnableDdc: activeAsrConfig.enableDdc,
+    asrEnableSpeakerInfo: activeAsrConfig.enableSpeakerInfo,
+    asrEnablePunc: activeAsrConfig.enablePunc,
+    asrEnableItn: activeAsrConfig.enableItn,
+    asrBoostingTableName: activeAsrConfig.boostingTableName,
+    asrCorrectTableName: activeAsrConfig.correctTableName,
+    asrContext: activeAsrConfig.context,
+    asrApiKey: activeAsrConfig.apiKey,
+    asrBaseUrl: activeAsrConfig.baseUrl,
+    asrCompatibleModel: activeAsrConfig.compatibleModel,
     textRefineEnabled: true,
     textRefineProvider: DEFAULT_TEXT_REFINE_PROVIDER,
     textRefineProviderConfigs: defaultTextRefineProviderConfigs,

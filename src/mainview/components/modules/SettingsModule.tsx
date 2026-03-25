@@ -16,6 +16,12 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  ASR_PROVIDER_OPTIONS,
+  getAsrProviderConfig,
+  getAsrProviderPreset,
+  type AsrProvider,
+} from "../../lib/asrProvider";
+import {
   getTextRefineProviderConfig,
   getTextRefineProviderPreset,
   TEXT_REFINE_PROVIDER_OPTIONS,
@@ -120,6 +126,7 @@ export function SettingsModule({
   const missingAudioInputSelected =
     Boolean(runtimeConfig.audioInputDeviceId) &&
     !audioInputDevices.some((device) => device.deviceId === runtimeConfig.audioInputDeviceId);
+  const selectedAsrProvider = getAsrProviderPreset(runtimeConfig.asrProvider);
   const selectedTextRefineProvider = getTextRefineProviderPreset(runtimeConfig.textRefineProvider);
   const updateStatusCopy = {
     idle: "可手动检查新版本，应用也会在后台定时检查。",
@@ -153,6 +160,36 @@ export function SettingsModule({
       textRefineApiKey: providerConfig.apiKey,
       textRefineBaseUrl: providerConfig.baseUrl,
       textRefineModel: providerConfig.model,
+    });
+  };
+
+  const applyAsrProviderPreset = (provider: AsrProvider) => {
+    const providerConfig = getAsrProviderConfig(runtimeConfig.asrProviderConfigs, provider);
+    onRuntimeConfigChange({
+      asrProvider: provider,
+      asrAppId: providerConfig.appId,
+      asrAccessToken: providerConfig.accessToken,
+      asrAccessSecret: providerConfig.accessSecret,
+      asrCluster: providerConfig.cluster,
+      asrAuthMethod: providerConfig.authMethod,
+      asrWsUrl: providerConfig.wsUrl,
+      asrResourceId: providerConfig.resourceId,
+      asrFlashUrl: providerConfig.flashUrl,
+      asrLanguage: providerConfig.language,
+      asrModelVersion: providerConfig.modelVersion,
+      asrSsdVersion: providerConfig.ssdVersion,
+      asrCommonWords: providerConfig.commonWords,
+      asrEnableChannelSplit: providerConfig.enableChannelSplit,
+      asrEnableDdc: providerConfig.enableDdc,
+      asrEnableSpeakerInfo: providerConfig.enableSpeakerInfo,
+      asrEnablePunc: providerConfig.enablePunc,
+      asrEnableItn: providerConfig.enableItn,
+      asrBoostingTableName: providerConfig.boostingTableName,
+      asrCorrectTableName: providerConfig.correctTableName,
+      asrContext: providerConfig.context,
+      asrApiKey: providerConfig.apiKey,
+      asrBaseUrl: providerConfig.baseUrl,
+      asrCompatibleModel: providerConfig.compatibleModel,
     });
   };
 
@@ -376,35 +413,271 @@ export function SettingsModule({
           </CardHeader>
           <CardContent className="space-y-4">
             <label className="text-sm">
-              <span className="mb-1 block text-stone-500">APPID</span>
-              <Input
-                type="text"
-                value={runtimeConfig.asrAppId}
-                onChange={(e) => onRuntimeConfigChange({ asrAppId: e.target.value })}
-                placeholder="输入识别服务 APPID"
-                className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-              />
+              <span className="mb-1 block text-stone-500">Provider</span>
+              <Select
+                value={selectedAsrProvider.id}
+                onValueChange={(value) => applyAsrProviderPreset(value as AsrProvider)}
+              >
+                <SelectTrigger className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]">
+                  <SelectValue placeholder="选择语音识别服务" />
+                </SelectTrigger>
+                <SelectContent>
+                  {ASR_PROVIDER_OPTIONS.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <span className="mt-1 block text-xs leading-6 text-stone-500">
+                {selectedAsrProvider.description}
+              </span>
             </label>
-            <label className="text-sm">
-              <span className="mb-1 block text-stone-500">Access Token</span>
-              <Input
-                type="text"
-                value={runtimeConfig.asrAccessToken}
-                onChange={(e) => onRuntimeConfigChange({ asrAccessToken: e.target.value })}
-                placeholder="输入 Access Token"
-                className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-              />
-            </label>
-            <label className="text-sm">
-              <span className="mb-1 block text-stone-500">Access Secret</span>
-              <Input
-                type="text"
-                value={runtimeConfig.asrAccessSecret}
-                onChange={(e) => onRuntimeConfigChange({ asrAccessSecret: e.target.value })}
-                placeholder="输入 Access Secret"
-                className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-              />
-            </label>
+
+            {!selectedAsrProvider.supported ? (
+              <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-700">
+                当前版本只有豆包 ASR 已正式接入。你可以先保存这套兼容配置，但切换到这个 provider 后，识别链路仍然会提示“暂未接入”。
+              </div>
+            ) : (
+              <div className="rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] px-4 py-3 text-xs leading-6 text-stone-500">
+                识别配置会按 provider 分开保存。切换服务商时，这里的字段会切到对应 provider 的独立配置，不会互相覆盖。
+              </div>
+            )}
+
+            {selectedAsrProvider.id === "doubao" ? (
+              <>
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <label className="text-sm">
+                    <span className="mb-1 block text-stone-500">APPID</span>
+                    <Input
+                      type="text"
+                      value={runtimeConfig.asrAppId}
+                      onChange={(e) => onRuntimeConfigChange({ asrAppId: e.target.value })}
+                      placeholder="输入豆包语音识别 APPID"
+                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                    />
+                  </label>
+                  <label className="text-sm">
+                    <span className="mb-1 block text-stone-500">Cluster</span>
+                    <Input
+                      type="text"
+                      value={runtimeConfig.asrCluster}
+                      onChange={(e) => onRuntimeConfigChange({ asrCluster: e.target.value })}
+                      placeholder="例如 volcengine_input_common"
+                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                    />
+                  </label>
+                  <label className="text-sm">
+                    <span className="mb-1 block text-stone-500">Access Token</span>
+                    <Input
+                      type="text"
+                      value={runtimeConfig.asrAccessToken}
+                      onChange={(e) => onRuntimeConfigChange({ asrAccessToken: e.target.value })}
+                      placeholder="输入 Access Token"
+                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                    />
+                  </label>
+                  <label className="text-sm">
+                    <span className="mb-1 block text-stone-500">Access Secret</span>
+                    <Input
+                      type="text"
+                      value={runtimeConfig.asrAccessSecret}
+                      onChange={(e) => onRuntimeConfigChange({ asrAccessSecret: e.target.value })}
+                      placeholder="输入 Access Secret"
+                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                    />
+                  </label>
+                  <label className="text-sm">
+                    <span className="mb-1 block text-stone-500">Auth Method</span>
+                    <Input
+                      type="text"
+                      value={runtimeConfig.asrAuthMethod}
+                      onChange={(e) => onRuntimeConfigChange({ asrAuthMethod: e.target.value })}
+                      placeholder="默认 token"
+                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                    />
+                  </label>
+                  <label className="text-sm">
+                    <span className="mb-1 block text-stone-500">Resource ID</span>
+                    <Input
+                      type="text"
+                      value={runtimeConfig.asrResourceId}
+                      onChange={(e) => onRuntimeConfigChange({ asrResourceId: e.target.value })}
+                      placeholder="例如 volc.bigasr.auc_turbo"
+                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid gap-4">
+                  <label className="text-sm">
+                    <span className="mb-1 block text-stone-500">WebSocket URL</span>
+                    <Input
+                      type="text"
+                      value={runtimeConfig.asrWsUrl}
+                      onChange={(e) => onRuntimeConfigChange({ asrWsUrl: e.target.value })}
+                      placeholder="输入 WebSocket 识别地址"
+                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                    />
+                  </label>
+                  <label className="text-sm">
+                    <span className="mb-1 block text-stone-500">Flash URL</span>
+                    <Input
+                      type="text"
+                      value={runtimeConfig.asrFlashUrl}
+                      onChange={(e) => onRuntimeConfigChange({ asrFlashUrl: e.target.value })}
+                      placeholder="输入 flash 接口地址"
+                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                    />
+                  </label>
+                </div>
+
+                <div className="rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] p-4">
+                  <div className="mb-3 text-sm font-medium text-stone-950">高级参数</div>
+                  <div className="grid gap-4 xl:grid-cols-3">
+                    <label className="text-sm">
+                      <span className="mb-1 block text-stone-500">Language</span>
+                      <Input
+                        type="text"
+                        value={runtimeConfig.asrLanguage}
+                        onChange={(e) => onRuntimeConfigChange({ asrLanguage: e.target.value })}
+                        placeholder="可选，如 zh-CN"
+                        className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                      />
+                    </label>
+                    <label className="text-sm">
+                      <span className="mb-1 block text-stone-500">Model Version</span>
+                      <Input
+                        type="text"
+                        value={runtimeConfig.asrModelVersion}
+                        onChange={(e) => onRuntimeConfigChange({ asrModelVersion: e.target.value })}
+                        placeholder="可选"
+                        className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                      />
+                    </label>
+                    <label className="text-sm">
+                      <span className="mb-1 block text-stone-500">SSD Version</span>
+                      <Input
+                        type="text"
+                        value={runtimeConfig.asrSsdVersion}
+                        onChange={(e) => onRuntimeConfigChange({ asrSsdVersion: e.target.value })}
+                        placeholder="可选"
+                        className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 xl:grid-cols-2">
+                    <label className="text-sm">
+                      <span className="mb-1 block text-stone-500">Boosting Table Name</span>
+                      <Input
+                        type="text"
+                        value={runtimeConfig.asrBoostingTableName}
+                        onChange={(e) => onRuntimeConfigChange({ asrBoostingTableName: e.target.value })}
+                        placeholder="可选"
+                        className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                      />
+                    </label>
+                    <label className="text-sm">
+                      <span className="mb-1 block text-stone-500">Correct Table Name</span>
+                      <Input
+                        type="text"
+                        value={runtimeConfig.asrCorrectTableName}
+                        onChange={(e) => onRuntimeConfigChange({ asrCorrectTableName: e.target.value })}
+                        placeholder="可选"
+                        className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                      />
+                    </label>
+                  </div>
+
+                  <label className="mt-4 block text-sm">
+                    <span className="mb-1 block text-stone-500">Common Words</span>
+                    <Textarea
+                      rows={4}
+                      value={runtimeConfig.asrCommonWords.join("\n")}
+                      onChange={(e) =>
+                        onRuntimeConfigChange({
+                          asrCommonWords: e.target.value
+                            .split(/\r?\n|,/)
+                            .map((item) => item.trim())
+                            .filter(Boolean),
+                        })
+                      }
+                      placeholder="每行一个热词"
+                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                    />
+                  </label>
+
+                  <label className="mt-4 block text-sm">
+                    <span className="mb-1 block text-stone-500">Context</span>
+                    <Textarea
+                      rows={4}
+                      value={runtimeConfig.asrContext}
+                      onChange={(e) => onRuntimeConfigChange({ asrContext: e.target.value })}
+                      placeholder="可选，传给识别服务的上下文 JSON"
+                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                    />
+                  </label>
+
+                  <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                    {[
+                      ["asrEnableChannelSplit", runtimeConfig.asrEnableChannelSplit, "Channel Split"],
+                      ["asrEnableDdc", runtimeConfig.asrEnableDdc, "DDC"],
+                      ["asrEnableSpeakerInfo", runtimeConfig.asrEnableSpeakerInfo, "Speaker Info"],
+                      ["asrEnablePunc", runtimeConfig.asrEnablePunc, "Punctuation"],
+                      ["asrEnableItn", runtimeConfig.asrEnableItn, "ITN"],
+                    ].map(([key, checked, label]) => (
+                      <label
+                        key={String(key)}
+                        className="flex items-center justify-between gap-3 rounded-[14px] border border-stone-200 bg-[rgba(250,247,242,0.85)] px-4 py-3 text-sm"
+                      >
+                        <span className="font-medium text-stone-800">{label}</span>
+                        <Switch
+                          checked={Boolean(checked)}
+                          onCheckedChange={(nextChecked) =>
+                            onRuntimeConfigChange({ [String(key)]: nextChecked } as Partial<RuntimeConfig>)
+                          }
+                          className="data-[state=checked]:bg-stone-900 data-[state=unchecked]:bg-stone-200"
+                        />
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="grid gap-4 xl:grid-cols-3">
+                <label className="text-sm">
+                  <span className="mb-1 block text-stone-500">API Key</span>
+                  <Input
+                    type="text"
+                    value={runtimeConfig.asrApiKey}
+                    onChange={(e) => onRuntimeConfigChange({ asrApiKey: e.target.value })}
+                    placeholder="输入兼容接口的 API Key"
+                    className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                  />
+                </label>
+                <label className="text-sm">
+                  <span className="mb-1 block text-stone-500">Base URL</span>
+                  <Input
+                    type="text"
+                    value={runtimeConfig.asrBaseUrl}
+                    onChange={(e) => onRuntimeConfigChange({ asrBaseUrl: e.target.value })}
+                    placeholder="输入识别接口 Base URL"
+                    className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                  />
+                </label>
+                <label className="text-sm">
+                  <span className="mb-1 block text-stone-500">Model</span>
+                  <Input
+                    type="text"
+                    value={runtimeConfig.asrCompatibleModel}
+                    onChange={(e) => onRuntimeConfigChange({ asrCompatibleModel: e.target.value })}
+                    placeholder="输入模型名"
+                    className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                  />
+                </label>
+              </div>
+            )}
           </CardContent>
         </Card>
 

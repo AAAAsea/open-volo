@@ -8,6 +8,12 @@ This project loosely follows Keep a Changelog and uses semantic version tags suc
 
 ### Added
 
+- Added provider-based ASR settings, so speech recognition credentials are now grouped by service provider and no longer look like unlabeled generic fields.
+
+### Changed
+
+- Changed the ASR settings panel to expose Doubao-specific fields explicitly, while reserving a separate config bucket for future compatible providers.
+
 ## [0.1.0] - 2026-03-25
 
 ### Added

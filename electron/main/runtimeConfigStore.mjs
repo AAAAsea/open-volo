@@ -1,4 +1,9 @@
 import {
+  createDefaultAsrProviderConfigs,
+  getAsrProviderConfig,
+  normalizeAsrProvider,
+} from './asrProviders.mjs';
+import {
   createDefaultTextRefineProviderConfigs,
   getTextRefineProviderConfig,
   getTextRefineProviderPreset,
@@ -73,24 +78,22 @@ export function createRuntimeConfigStore({
     const asrEnableSpeakerInfoRaw = getEnvValue('VOLO_ASR_ENABLE_SPEAKER_INFO');
     const asrEnablePuncRaw = getEnvValue('VOLO_ASR_ENABLE_PUNC');
     const asrEnableItnRaw = getEnvValue('VOLO_ASR_ENABLE_ITN');
-    return {
-      cancelShortcut: 'Escape',
-      shortcutFinishMode: shortcutFinishModeRaw === 'press-again' ? 'press-again' : 'release',
-      audioInputDeviceId: audioInputDeviceIdRaw || '',
-      debugEnabled: debugEnabledRaw === '1',
-      asrModel: 'bigmodel_flash',
-      asrAppId: getEnvValue('VOLO_ASR_APPID', 'APPID', 'ASR_APPID') || '',
-      asrAccessToken: getEnvValue('VOLO_ASR_ACCESS_TOKEN', 'ACCESS_TOKEN', 'ASR_ACCESS_TOKEN') || '',
-      asrAccessSecret: getEnvValue('VOLO_ASR_ACCESS_SECRET', 'ACCESS_SECRET', 'ASR_ACCESS_SECRET') || '',
-      asrCluster: getEnvValue('VOLO_ASR_CLUSTER', 'CLUSTER', 'ASR_CLUSTER') || '',
-      asrAuthMethod: getEnvValue('VOLO_ASR_AUTH_METHOD', 'ASR_AUTH_METHOD') || 'token',
-      asrWsUrl: getEnvValue('VOLO_ASR_WS_URL', 'ASR_WS_URL') || '',
-      asrResourceId: getEnvValue('VOLO_ASR_RESOURCE_ID') || '',
-      asrFlashUrl: getEnvValue('VOLO_ASR_FLASH_URL') || '',
-      asrLanguage: getEnvValue('VOLO_ASR_LANGUAGE'),
-      asrModelVersion: getEnvValue('VOLO_ASR_MODEL_VERSION'),
-      asrSsdVersion: getEnvValue('VOLO_ASR_SSD_VERSION'),
-      asrCommonWords: (() => {
+    const asrProvider = normalizeAsrProvider(getEnvValue('VOLO_ASR_PROVIDER'));
+    const asrProviderConfigs = createDefaultAsrProviderConfigs();
+    asrProviderConfigs.doubao = {
+      ...asrProviderConfigs.doubao,
+      appId: getEnvValue('VOLO_ASR_APPID', 'APPID', 'ASR_APPID') || '',
+      accessToken: getEnvValue('VOLO_ASR_ACCESS_TOKEN', 'ACCESS_TOKEN', 'ASR_ACCESS_TOKEN') || '',
+      accessSecret: getEnvValue('VOLO_ASR_ACCESS_SECRET', 'ACCESS_SECRET', 'ASR_ACCESS_SECRET') || '',
+      cluster: getEnvValue('VOLO_ASR_CLUSTER', 'CLUSTER', 'ASR_CLUSTER') || asrProviderConfigs.doubao.cluster,
+      authMethod: getEnvValue('VOLO_ASR_AUTH_METHOD', 'ASR_AUTH_METHOD') || 'token',
+      wsUrl: getEnvValue('VOLO_ASR_WS_URL', 'ASR_WS_URL') || asrProviderConfigs.doubao.wsUrl,
+      resourceId: getEnvValue('VOLO_ASR_RESOURCE_ID') || asrProviderConfigs.doubao.resourceId,
+      flashUrl: getEnvValue('VOLO_ASR_FLASH_URL') || asrProviderConfigs.doubao.flashUrl,
+      language: getEnvValue('VOLO_ASR_LANGUAGE'),
+      modelVersion: getEnvValue('VOLO_ASR_MODEL_VERSION'),
+      ssdVersion: getEnvValue('VOLO_ASR_SSD_VERSION'),
+      commonWords: (() => {
         const raw = getEnvValue('VOLO_ASR_COMMON_WORDS');
         if (!raw) return [];
         try {
@@ -105,14 +108,53 @@ export function createRuntimeConfigStore({
             .filter(Boolean);
         }
       })(),
-      asrEnableChannelSplit: asrEnableChannelSplitRaw ? asrEnableChannelSplitRaw !== '0' : true,
-      asrEnableDdc: asrEnableDdcRaw ? asrEnableDdcRaw !== '0' : true,
-      asrEnableSpeakerInfo: asrEnableSpeakerInfoRaw ? asrEnableSpeakerInfoRaw !== '0' : true,
-      asrEnablePunc: asrEnablePuncRaw ? asrEnablePuncRaw !== '0' : true,
-      asrEnableItn: asrEnableItnRaw ? asrEnableItnRaw !== '0' : true,
-      asrBoostingTableName: getEnvValue('VOLO_ASR_BOOSTING_TABLE_NAME') || '',
-      asrCorrectTableName: getEnvValue('VOLO_ASR_CORRECT_TABLE_NAME') || '',
-      asrContext: getEnvValue('VOLO_ASR_CONTEXT') || '',
+      enableChannelSplit: asrEnableChannelSplitRaw ? asrEnableChannelSplitRaw !== '0' : true,
+      enableDdc: asrEnableDdcRaw ? asrEnableDdcRaw !== '0' : true,
+      enableSpeakerInfo: asrEnableSpeakerInfoRaw ? asrEnableSpeakerInfoRaw !== '0' : true,
+      enablePunc: asrEnablePuncRaw ? asrEnablePuncRaw !== '0' : true,
+      enableItn: asrEnableItnRaw ? asrEnableItnRaw !== '0' : true,
+      boostingTableName: getEnvValue('VOLO_ASR_BOOSTING_TABLE_NAME') || '',
+      correctTableName: getEnvValue('VOLO_ASR_CORRECT_TABLE_NAME') || '',
+      context: getEnvValue('VOLO_ASR_CONTEXT') || '',
+    };
+    asrProviderConfigs['custom-compatible'] = {
+      ...asrProviderConfigs['custom-compatible'],
+      apiKey: getEnvValue('VOLO_ASR_API_KEY') || '',
+      baseUrl: getEnvValue('VOLO_ASR_BASE_URL') || '',
+      compatibleModel: getEnvValue('VOLO_ASR_COMPATIBLE_MODEL') || '',
+    };
+    const activeAsrConfig = getAsrProviderConfig(asrProviderConfigs, asrProvider);
+    return {
+      cancelShortcut: 'Escape',
+      shortcutFinishMode: shortcutFinishModeRaw === 'press-again' ? 'press-again' : 'release',
+      audioInputDeviceId: audioInputDeviceIdRaw || '',
+      debugEnabled: debugEnabledRaw === '1',
+      asrProvider,
+      asrProviderConfigs,
+      asrModel: 'bigmodel_flash',
+      asrAppId: activeAsrConfig.appId,
+      asrAccessToken: activeAsrConfig.accessToken,
+      asrAccessSecret: activeAsrConfig.accessSecret,
+      asrCluster: activeAsrConfig.cluster,
+      asrAuthMethod: activeAsrConfig.authMethod,
+      asrWsUrl: activeAsrConfig.wsUrl,
+      asrResourceId: activeAsrConfig.resourceId,
+      asrFlashUrl: activeAsrConfig.flashUrl,
+      asrLanguage: activeAsrConfig.language,
+      asrModelVersion: activeAsrConfig.modelVersion,
+      asrSsdVersion: activeAsrConfig.ssdVersion,
+      asrCommonWords: activeAsrConfig.commonWords,
+      asrEnableChannelSplit: activeAsrConfig.enableChannelSplit,
+      asrEnableDdc: activeAsrConfig.enableDdc,
+      asrEnableSpeakerInfo: activeAsrConfig.enableSpeakerInfo,
+      asrEnablePunc: activeAsrConfig.enablePunc,
+      asrEnableItn: activeAsrConfig.enableItn,
+      asrBoostingTableName: activeAsrConfig.boostingTableName,
+      asrCorrectTableName: activeAsrConfig.correctTableName,
+      asrContext: activeAsrConfig.context,
+      asrApiKey: activeAsrConfig.apiKey,
+      asrBaseUrl: activeAsrConfig.baseUrl,
+      asrCompatibleModel: activeAsrConfig.compatibleModel,
       textRefineEnabled: textRefineEnabledRaw ? textRefineEnabledRaw !== '0' : false,
       textRefineProvider,
       textRefineProviderConfigs,
@@ -168,6 +210,87 @@ export function createRuntimeConfigStore({
       typeof payload.asrEnablePunc === 'boolean' ? payload.asrEnablePunc : defaultRuntimeConfig.asrEnablePunc;
     const asrEnableItn =
       typeof payload.asrEnableItn === 'boolean' ? payload.asrEnableItn : defaultRuntimeConfig.asrEnableItn;
+    const asrProvider = normalizeAsrProvider(payload.asrProvider);
+    const defaultAsrProviderConfigs = createDefaultAsrProviderConfigs();
+    const payloadAsrProviderConfigs =
+      payload.asrProviderConfigs && typeof payload.asrProviderConfigs === 'object'
+        ? payload.asrProviderConfigs
+        : {};
+    const asrProviderConfigs = {
+      doubao: {
+        ...defaultAsrProviderConfigs.doubao,
+        ...(payloadAsrProviderConfigs.doubao ?? {}),
+      },
+      'custom-compatible': {
+        ...defaultAsrProviderConfigs['custom-compatible'],
+        ...(payloadAsrProviderConfigs['custom-compatible'] ?? {}),
+      },
+    };
+    asrProviderConfigs[asrProvider] = {
+      ...asrProviderConfigs[asrProvider],
+      appId: normalizeOptionalString(payload.asrAppId, asrProviderConfigs[asrProvider]?.appId || ''),
+      accessToken: normalizeOptionalString(
+        payload.asrAccessToken,
+        asrProviderConfigs[asrProvider]?.accessToken || '',
+      ),
+      accessSecret: normalizeOptionalString(
+        payload.asrAccessSecret,
+        asrProviderConfigs[asrProvider]?.accessSecret || '',
+      ),
+      cluster: normalizeOptionalString(payload.asrCluster, asrProviderConfigs[asrProvider]?.cluster || ''),
+      authMethod: normalizeOptionalString(
+        payload.asrAuthMethod,
+        asrProviderConfigs[asrProvider]?.authMethod || '',
+      ),
+      wsUrl: normalizeOptionalString(payload.asrWsUrl, asrProviderConfigs[asrProvider]?.wsUrl || ''),
+      resourceId: normalizeOptionalString(
+        payload.asrResourceId,
+        asrProviderConfigs[asrProvider]?.resourceId || '',
+      ),
+      flashUrl: normalizeOptionalString(payload.asrFlashUrl, asrProviderConfigs[asrProvider]?.flashUrl || ''),
+      language: normalizeOptionalString(payload.asrLanguage, asrProviderConfigs[asrProvider]?.language || ''),
+      modelVersion: normalizeOptionalString(
+        payload.asrModelVersion,
+        asrProviderConfigs[asrProvider]?.modelVersion || '',
+      ),
+      ssdVersion: normalizeOptionalString(payload.asrSsdVersion, asrProviderConfigs[asrProvider]?.ssdVersion || ''),
+      commonWords:
+        'asrCommonWords' in payload
+          ? normalizeStringArray(payload.asrCommonWords, [])
+          : normalizeStringArray(asrProviderConfigs[asrProvider]?.commonWords, []),
+      enableChannelSplit:
+        typeof payload.asrEnableChannelSplit === 'boolean'
+          ? payload.asrEnableChannelSplit
+          : asrProviderConfigs[asrProvider]?.enableChannelSplit,
+      enableDdc:
+        typeof payload.asrEnableDdc === 'boolean' ? payload.asrEnableDdc : asrProviderConfigs[asrProvider]?.enableDdc,
+      enableSpeakerInfo:
+        typeof payload.asrEnableSpeakerInfo === 'boolean'
+          ? payload.asrEnableSpeakerInfo
+          : asrProviderConfigs[asrProvider]?.enableSpeakerInfo,
+      enablePunc:
+        typeof payload.asrEnablePunc === 'boolean'
+          ? payload.asrEnablePunc
+          : asrProviderConfigs[asrProvider]?.enablePunc,
+      enableItn:
+        typeof payload.asrEnableItn === 'boolean' ? payload.asrEnableItn : asrProviderConfigs[asrProvider]?.enableItn,
+      boostingTableName: normalizeOptionalString(
+        payload.asrBoostingTableName,
+        asrProviderConfigs[asrProvider]?.boostingTableName || '',
+      ),
+      correctTableName: normalizeOptionalString(
+        payload.asrCorrectTableName,
+        asrProviderConfigs[asrProvider]?.correctTableName || '',
+      ),
+      context: normalizeOptionalString(payload.asrContext, asrProviderConfigs[asrProvider]?.context || ''),
+      apiKey: normalizeOptionalString(payload.asrApiKey, asrProviderConfigs[asrProvider]?.apiKey || ''),
+      baseUrl: normalizeOptionalString(payload.asrBaseUrl, asrProviderConfigs[asrProvider]?.baseUrl || ''),
+      compatibleModel: normalizeOptionalString(
+        payload.asrCompatibleModel,
+        asrProviderConfigs[asrProvider]?.compatibleModel || '',
+      ),
+    };
+    const activeAsrConfig = getAsrProviderConfig(asrProviderConfigs, asrProvider);
     const textRefineProvider = inferTextRefineProvider({
       provider: payload.textRefineProvider,
       baseUrl: payload.textRefineBaseUrl,
@@ -204,34 +327,39 @@ export function createRuntimeConfigStore({
       shortcutFinishMode: normalizeShortcutFinishMode(payload.shortcutFinishMode),
       audioInputDeviceId: normalizeString(payload.audioInputDeviceId, ''),
       debugEnabled,
+      asrProvider,
+      asrProviderConfigs,
       // Force ASR 2.0 极速版 only.
       asrModel: 'bigmodel_flash',
-      asrAppId: normalizeString(payload.asrAppId, defaultRuntimeConfig.asrAppId),
-      asrAccessToken: normalizeString(payload.asrAccessToken, defaultRuntimeConfig.asrAccessToken),
-      asrAccessSecret: normalizeString(payload.asrAccessSecret, defaultRuntimeConfig.asrAccessSecret),
-      asrCluster: normalizeString(payload.asrCluster, defaultRuntimeConfig.asrCluster),
-      asrAuthMethod: normalizeString(payload.asrAuthMethod, defaultRuntimeConfig.asrAuthMethod),
-      asrWsUrl: normalizeString(payload.asrWsUrl, defaultRuntimeConfig.asrWsUrl),
-      asrResourceId: normalizeString(payload.asrResourceId, defaultRuntimeConfig.asrResourceId),
-      asrFlashUrl: normalizeString(payload.asrFlashUrl, defaultRuntimeConfig.asrFlashUrl),
-      asrLanguage: normalizeString(payload.asrLanguage, defaultRuntimeConfig.asrLanguage),
-      asrModelVersion: normalizeString(payload.asrModelVersion, defaultRuntimeConfig.asrModelVersion),
-      asrSsdVersion: normalizeString(payload.asrSsdVersion, defaultRuntimeConfig.asrSsdVersion),
-      asrCommonWords: normalizeStringArray(payload.asrCommonWords, defaultRuntimeConfig.asrCommonWords),
-      asrEnableChannelSplit,
-      asrEnableDdc,
-      asrEnableSpeakerInfo,
-      asrEnablePunc,
-      asrEnableItn,
-      asrBoostingTableName: normalizeString(
-        payload.asrBoostingTableName,
-        defaultRuntimeConfig.asrBoostingTableName,
-      ),
-      asrCorrectTableName: normalizeString(
-        payload.asrCorrectTableName,
-        defaultRuntimeConfig.asrCorrectTableName,
-      ),
-      asrContext: normalizeString(payload.asrContext, defaultRuntimeConfig.asrContext),
+      asrAppId: activeAsrConfig.appId,
+      asrAccessToken: activeAsrConfig.accessToken,
+      asrAccessSecret: activeAsrConfig.accessSecret,
+      asrCluster: activeAsrConfig.cluster,
+      asrAuthMethod: activeAsrConfig.authMethod,
+      asrWsUrl: activeAsrConfig.wsUrl,
+      asrResourceId: activeAsrConfig.resourceId,
+      asrFlashUrl: activeAsrConfig.flashUrl,
+      asrLanguage: activeAsrConfig.language,
+      asrModelVersion: activeAsrConfig.modelVersion,
+      asrSsdVersion: activeAsrConfig.ssdVersion,
+      asrCommonWords: activeAsrConfig.commonWords,
+      asrEnableChannelSplit:
+        typeof activeAsrConfig.enableChannelSplit === 'boolean'
+          ? activeAsrConfig.enableChannelSplit
+          : asrEnableChannelSplit,
+      asrEnableDdc: typeof activeAsrConfig.enableDdc === 'boolean' ? activeAsrConfig.enableDdc : asrEnableDdc,
+      asrEnableSpeakerInfo:
+        typeof activeAsrConfig.enableSpeakerInfo === 'boolean'
+          ? activeAsrConfig.enableSpeakerInfo
+          : asrEnableSpeakerInfo,
+      asrEnablePunc: typeof activeAsrConfig.enablePunc === 'boolean' ? activeAsrConfig.enablePunc : asrEnablePunc,
+      asrEnableItn: typeof activeAsrConfig.enableItn === 'boolean' ? activeAsrConfig.enableItn : asrEnableItn,
+      asrBoostingTableName: activeAsrConfig.boostingTableName,
+      asrCorrectTableName: activeAsrConfig.correctTableName,
+      asrContext: activeAsrConfig.context,
+      asrApiKey: activeAsrConfig.apiKey,
+      asrBaseUrl: activeAsrConfig.baseUrl,
+      asrCompatibleModel: activeAsrConfig.compatibleModel,
       textRefineEnabled,
       textRefineProvider,
       textRefineProviderConfigs,
@@ -243,6 +371,7 @@ export function createRuntimeConfigStore({
   };
 
   const applyRuntimeEnv = (config) => {
+    env.VOLO_ASR_PROVIDER = config.asrProvider;
     env.VOLO_ASR_APPID = config.asrAppId;
     env.VOLO_SHORTCUT_FINISH_MODE = config.shortcutFinishMode;
     env.VOLO_AUDIO_INPUT_DEVICE_ID = config.audioInputDeviceId;
@@ -267,6 +396,9 @@ export function createRuntimeConfigStore({
     env.VOLO_ASR_BOOSTING_TABLE_NAME = config.asrBoostingTableName;
     env.VOLO_ASR_CORRECT_TABLE_NAME = config.asrCorrectTableName;
     env.VOLO_ASR_CONTEXT = config.asrContext;
+    env.VOLO_ASR_API_KEY = config.asrApiKey;
+    env.VOLO_ASR_BASE_URL = config.asrBaseUrl;
+    env.VOLO_ASR_COMPATIBLE_MODEL = config.asrCompatibleModel;
     env.VOLO_TEXT_REFINE_ENABLED = config.textRefineEnabled ? '1' : '0';
     env.VOLO_TEXT_REFINE_PROVIDER = config.textRefineProvider;
     env.VOLO_TEXT_REFINE_API_KEY = config.textRefineApiKey;

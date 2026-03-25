@@ -1,4 +1,5 @@
 import type { ShortcutPayload } from "../shared/voiceRpc";
+import type { AsrProvider, AsrProviderConfigs } from "./lib/asrProvider";
 import type { TextRefineProvider, TextRefineProviderConfigs } from "./lib/textRefineProvider";
 
 export type ShortcutConfig = ShortcutPayload & {
@@ -81,6 +82,8 @@ export type RuntimeConfig = {
   shortcutFinishMode: ShortcutFinishMode;
   audioInputDeviceId: string;
   debugEnabled: boolean;
+  asrProvider: AsrProvider;
+  asrProviderConfigs: AsrProviderConfigs;
   asrModel: string;
   asrAppId: string;
   asrAccessToken: string;
@@ -102,6 +105,9 @@ export type RuntimeConfig = {
   asrBoostingTableName: string;
   asrCorrectTableName: string;
   asrContext: string;
+  asrApiKey: string;
+  asrBaseUrl: string;
+  asrCompatibleModel: string;
   textRefineEnabled: boolean;
   textRefineProvider: TextRefineProvider;
   textRefineProviderConfigs: TextRefineProviderConfigs;

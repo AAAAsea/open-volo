@@ -158,6 +158,7 @@ function getAsrConfig() {
     return raw !== '0' && raw.toLowerCase() !== 'false';
   };
   const model = 'bigmodel_flash';
+  const provider = getEnvValue('VOLO_ASR_PROVIDER') || 'doubao';
   const appid = getEnvValue('VOLO_ASR_APPID', 'APPID', 'ASR_APPID');
   const token = getEnvValue('VOLO_ASR_ACCESS_TOKEN', 'ACCESS_TOKEN', 'ASR_ACCESS_TOKEN');
   const secret = getEnvValue('VOLO_ASR_ACCESS_SECRET', 'ACCESS_SECRET', 'ASR_ACCESS_SECRET');
@@ -198,6 +199,7 @@ function getAsrConfig() {
   const context = getEnvValue('VOLO_ASR_CONTEXT');
 
   return {
+    provider,
     model,
     appid,
     token,
@@ -443,6 +445,9 @@ class AsrWsClient {
 
 export async function transcribeAudio(audioInput) {
   const config = getAsrConfig();
+  if (config.provider !== 'doubao') {
+    throw new Error('当前版本仅正式支持豆包 ASR，自定义 compatible provider 尚未接入。');
+  }
   if (!config.appid || !config.token) {
     throw new Error('ASR 配置缺失');
   }
