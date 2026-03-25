@@ -1,0 +1,117 @@
+{
+  "name": "open-volo",
+  "version": "0.1.0",
+  "description": "Open-source desktop voice input app for macOS and Windows.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AAAAsea/open-volo.git"
+  },
+  "type": "module",
+  "main": "electron/main.mjs",
+  "scripts": {
+    "start": "pnpm run dev",
+    "dev": "concurrently -k \"pnpm run hmr\" \"wait-on tcp:5173 && electron electron/main.mjs\"",
+    "hmr": "vite --port 5173",
+    "build:fn-listener": "node scripts/build-fn-listener.mjs",
+    "build:input-helper": "node scripts/build-input-helper.mjs",
+    "generate:icons": "swift scripts/generate-icons.swift assets/branding/volo.png",
+    "build": "pnpm run build:fn-listener && pnpm run build:input-helper && vite build",
+    "clean:release": "rm -rf release",
+    "dist:mac": "pnpm run build && electron-builder --mac dmg zip --publish never",
+    "dist:mac:signed": "pnpm run build && electron-builder --mac dmg zip --publish never -c.electronDist=node_modules/electron/dist -c.electronVersion=37.2.6",
+    "notarize:mac": "node scripts/notarize-mac.mjs",
+    "release:mac": "pnpm run dist:mac:signed && pnpm run notarize:mac",
+    "dist:win": "pnpm run dist:win:x64",
+    "dist:win:x64": "pnpm run build && electron-builder --win nsis zip --x64 --publish never",
+    "dist:win:arm64": "pnpm run build && electron-builder --win nsis zip --arm64 --publish never",
+    "preview": "vite preview --port 4173",
+    "electron": "electron electron/main.mjs"
+  },
+  "dependencies": {
+    "@radix-ui/react-progress": "^1.1.8",
+    "@radix-ui/react-scroll-area": "^1.2.10",
+    "@radix-ui/react-select": "^2.2.6",
+    "@radix-ui/react-separator": "^1.1.8",
+    "@radix-ui/react-slot": "^1.2.4",
+    "@radix-ui/react-switch": "^1.2.6",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "electron-updater": "^6.8.3",
+    "framer-motion": "^11.18.2",
+    "lucide-react": "^0.575.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.5.0",
+    "tailwindcss-animate": "^1.0.7",
+    "wavesurfer.js": "^7.12.1",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/ws": "^8.5.13",
+    "@vitejs/plugin-react": "^4.3.4",
+    "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.0",
+    "electron": "^37.2.6",
+    "electron-builder": "^25.1.8",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.16",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3",
+    "wait-on": "^8.0.1"
+  },
+  "build": {
+    "appId": "dev.openvolo.app",
+    "productName": "Volo",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "dist/**/*",
+      "package.json"
+    ],
+    "asarUnpack": [
+      "electron/resources/fn-monitor",
+      "electron/resources/input-helper"
+    ],
+    "mac": {
+      "icon": "assets/icon.icns",
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.mac.plist",
+      "entitlementsInherit": "entitlements.mac.plist",
+      "extendInfo": {
+        "NSMicrophoneUsageDescription": "需要使用麦克风进行语音输入。",
+        "NSSystemAdministrationUsageDescription": "需要辅助功能权限以便跨应用回填输入。"
+      },
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "artifactName": "${productName}-${version}-${arch}-win.${ext}",
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "AAAAsea",
+        "repo": "open-volo"
+      }
+    ]
+  }
+}

@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 35 31% 96%;
+    --foreground: 30 9% 9%;
+    --card: 36 43% 99%;
+    --card-foreground: 30 9% 9%;
+    --popover: 36 43% 99%;
+    --popover-foreground: 30 9% 9%;
+    --primary: 28 10% 11%;
+    --primary-foreground: 35 50% 98%;
+    --secondary: 35 23% 92%;
+    --secondary-foreground: 28 10% 11%;
+    --muted: 35 22% 92%;
+    --muted-foreground: 27 9% 41%;
+    --accent: 37 35% 90%;
+    --accent-foreground: 28 10% 11%;
+    --destructive: 0 62% 42%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 31 18% 82%;
+    --input: 31 18% 82%;
+    --ring: 37 41% 47%;
+    --chart-1: 39 42% 51%;
+    --chart-2: 110 10% 47%;
+    --chart-3: 22 25% 31%;
+    --chart-4: 42 61% 68%;
+    --chart-5: 26 40% 61%;
+    --radius: 1rem
+  }
+  .dark {
+    --background: 0 0% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 0 0% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 0 0% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 0 0% 9%;
+    --secondary: 0 0% 14.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 0 0% 14.9%;
+    --muted-foreground: 0 0% 63.9%;
+    --accent: 0 0% 14.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 14.9%;
+    --input: 0 0% 14.9%;
+    --ring: 0 0% 83.1%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%
+  }
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
+    background-image: none;
+  }
+
+  ::selection {
+    background: rgba(177, 138, 70, 0.2);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: "Cormorant Garamond", "Iowan Old Style", "Palatino Linotype", serif;
+  }
+
+  .subtle-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 110, 96, 0.55) rgba(255, 252, 248, 0.32);
+  }
+
+  .subtle-scrollbar::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  .subtle-scrollbar::-webkit-scrollbar-track {
+    background: rgba(255, 252, 248, 0.32);
+    border-radius: 999px;
+  }
+
+  .subtle-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(120, 110, 96, 0.55);
+    border: 2px solid rgba(255, 252, 248, 0.32);
+    border-radius: 999px;
+  }
+
+  .subtle-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(88, 79, 68, 0.72);
+  }
+}

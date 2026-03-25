@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+
+# env & secrets
+.env
+.env.local
+.env.*.local
+
+# build outputs
+dist/
+build/
+release/
+tmp/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+.agents/
+.claude/
+.codex/
+.cursor/
+hello-world/
+
+# misc temp
+*.tmp
+*.swp
+electron/resources/fn-monitor
+electron/resources/input-helper
+electron/resources/*.scpt
+
+# runtime local files
+coverage/
