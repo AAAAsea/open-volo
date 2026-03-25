@@ -1,11 +1,9 @@
-import { useEffect, useRef } from "react";
 import type { VoiceStage } from "../../../shared/voiceRpc";
 import { ShortcutGuideCard } from "@/components/ShortcutGuideCard";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
 import {
   Select,
   SelectContent,
@@ -33,7 +31,6 @@ import type {
   RuntimeConfig,
   ShortcutConfig,
   ShortcutFinishMode,
-  UpdateState,
 } from "../../types";
 
 const DEFAULT_AUDIO_INPUT_VALUE = "__volo_default_audio_input__";
@@ -44,9 +41,6 @@ type SettingsModuleProps = {
   captureShortcutMode: boolean;
   shortcutFeedback: string;
   runtimeConfig: RuntimeConfig;
-  updateState: UpdateState;
-  debugLogLines: string[];
-  debugLogPath: string;
   audioInputDevices: AudioInputDeviceOption[];
   audioInputDevicesLoading: boolean;
   microphonePermission: PermissionStatus;
@@ -54,10 +48,6 @@ type SettingsModuleProps = {
   isShortcutActive: boolean;
   registrationState: "idle" | "success" | "error";
   onCaptureShortcut: () => void;
-  onCheckForUpdates: () => void;
-  onDownloadUpdate: () => void;
-  onInstallUpdate: () => void;
-  onClearDebugLogs: () => void;
   onRuntimeConfigChange: (patch: Partial<RuntimeConfig>) => void;
   onRefreshAudioInputDevices: () => void;
 };
@@ -68,9 +58,6 @@ export function SettingsModule({
   captureShortcutMode,
   shortcutFeedback,
   runtimeConfig,
-  updateState,
-  debugLogLines,
-  debugLogPath,
   audioInputDevices,
   audioInputDevicesLoading,
   microphonePermission,
@@ -78,14 +65,9 @@ export function SettingsModule({
   isShortcutActive,
   registrationState,
   onCaptureShortcut,
-  onCheckForUpdates,
-  onDownloadUpdate,
-  onInstallUpdate,
-  onClearDebugLogs,
   onRuntimeConfigChange,
   onRefreshAudioInputDevices,
 }: SettingsModuleProps) {
-  const debugLogRef = useRef<HTMLTextAreaElement | null>(null);
   const defaultPrompt =
     "你的任务是复述。把用户发来的语音转写文本原样复述一遍，只做以下最小修正：\n" +
     "- 删掉口吃、重复、纯语气词（嗯、啊、呃、额、那个）\n" +
@@ -128,30 +110,6 @@ export function SettingsModule({
     !audioInputDevices.some((device) => device.deviceId === runtimeConfig.audioInputDeviceId);
   const selectedAsrProvider = getAsrProviderPreset(runtimeConfig.asrProvider);
   const selectedTextRefineProvider = getTextRefineProviderPreset(runtimeConfig.textRefineProvider);
-  const updateStatusCopy = {
-    idle: "可手动检查新版本，应用也会在后台定时检查。",
-    checking: "正在检查 GitHub Release 中是否有新版本。",
-    available: `发现新版本 ${updateState.latestVersion || ""}，可以开始下载。`.trim(),
-    downloading: "正在下载更新包，完成后可一键重启安装。",
-    downloaded: "更新已下载完成，重启应用即可安装。",
-    installing: "正在退出并安装更新。",
-    "up-to-date": "当前已经是最新版本。",
-    error: updateState.error || "检查更新失败，请稍后再试。",
-    unsupported: updateState.error || "当前环境暂不支持端内更新。",
-  } satisfies Record<UpdateState["status"], string>;
-
-  const formatTime = (value: string) => {
-    if (!value) return "未记录";
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return "未记录";
-    return new Intl.DateTimeFormat("zh-CN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
-  };
 
   const applyTextRefineProviderPreset = (provider: TextRefineProvider) => {
     const providerConfig = getTextRefineProviderConfig(runtimeConfig.textRefineProviderConfigs, provider);
@@ -192,12 +150,6 @@ export function SettingsModule({
       asrCompatibleModel: providerConfig.compatibleModel,
     });
   };
-
-  useEffect(() => {
-    const element = debugLogRef.current;
-    if (!element) return;
-    element.scrollTop = element.scrollHeight;
-  }, [debugLogLines, runtimeConfig.debugEnabled]);
 
   return (
     <section className="space-y-6">
@@ -243,97 +195,6 @@ export function SettingsModule({
               </button>
             );
           })}
-        </CardContent>
-      </Card>
-
-      <Card className="rounded-[18px] border-stone-200 bg-[rgba(246,243,238,0.56)] shadow-none">
-        <CardHeader>
-          <CardTitle className="text-lg text-stone-950">应用更新</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] p-4">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="space-y-1">
-                <div className="text-sm font-medium text-stone-950">
-                  当前版本 {updateState.currentVersion || "未知版本"}
-                </div>
-                <div className="text-xs leading-6 text-stone-500">{updateStatusCopy[updateState.status]}</div>
-              </div>
-              <div className="text-right text-[11px] leading-5 text-stone-400">
-                <div>最近检查：{formatTime(updateState.lastCheckedAt)}</div>
-                <div>发布时间：{formatTime(updateState.releaseDate)}</div>
-              </div>
-            </div>
-
-            <div className="mt-3 grid gap-2 text-xs leading-6 text-stone-500 xl:grid-cols-2">
-              <div>最新版本：{updateState.latestVersion || "尚未发现更新"}</div>
-              <div>来源：{updateState.supported ? "GitHub Releases" : "当前环境不支持自动更新"}</div>
-            </div>
-
-            {updateState.downloading || updateState.downloaded ? (
-              <div className="mt-4 space-y-2">
-                <Progress
-                  value={Math.max(0, Math.min(100, updateState.downloadPercent))}
-                  className="h-2 bg-stone-200 [&>div]:bg-stone-900"
-                />
-                <div className="flex items-center justify-between text-[11px] leading-5 text-stone-400">
-                  <span>{Math.round(updateState.downloadPercent)}%</span>
-                  <span>
-                    {updateState.totalBytes > 0
-                      ? `${(updateState.downloadedBytes / 1024 / 1024).toFixed(1)} / ${(updateState.totalBytes / 1024 / 1024).toFixed(1)} MB`
-                      : "等待下载信息"}
-                  </span>
-                </div>
-              </div>
-            ) : null}
-
-            {updateState.releaseNotes ? (
-              <div className="mt-4 space-y-2">
-                <div className="text-sm font-medium text-stone-950">发布说明</div>
-                <Textarea
-                  readOnly
-                  rows={6}
-                  value={updateState.releaseNotes}
-                  className="resize-none rounded-md border-stone-200 bg-[rgba(250,247,242,0.9)] text-xs leading-6 text-stone-700"
-                />
-              </div>
-            ) : null}
-
-            <div className="mt-4 flex flex-wrap justify-end gap-3">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onCheckForUpdates}
-                disabled={updateState.status === "checking" || updateState.status === "installing"}
-                className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)] text-stone-700 hover:bg-[rgba(250,246,240,0.7)]"
-              >
-                {updateState.status === "checking" ? "检查中..." : "检查更新"}
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onDownloadUpdate}
-                disabled={
-                  !updateState.supported ||
-                  !updateState.updateAvailable ||
-                  updateState.downloading ||
-                  updateState.downloaded ||
-                  updateState.status === "installing"
-                }
-                className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)] text-stone-700 hover:bg-[rgba(250,246,240,0.7)]"
-              >
-                {updateState.downloading ? "下载中..." : "下载更新"}
-              </Button>
-              <Button
-                type="button"
-                onClick={onInstallUpdate}
-                disabled={!updateState.downloaded || updateState.status === "installing"}
-                className="rounded-md bg-stone-950 text-stone-50 hover:bg-stone-800"
-              >
-                {updateState.status === "installing" ? "安装中..." : "重启安装"}
-              </Button>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
@@ -406,342 +267,110 @@ export function SettingsModule({
         </CardContent>
       </Card>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card className="rounded-[18px] border-stone-200 bg-[rgba(246,243,238,0.56)] shadow-none">
-          <CardHeader>
-            <CardTitle className="text-lg text-stone-950">识别服务</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <label className="text-sm">
-              <span className="mb-1 block text-stone-500">Provider</span>
-              <Select
-                value={selectedAsrProvider.id}
-                onValueChange={(value) => applyAsrProviderPreset(value as AsrProvider)}
-              >
-                <SelectTrigger className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]">
-                  <SelectValue placeholder="选择语音识别服务" />
-                </SelectTrigger>
-                <SelectContent>
-                  {ASR_PROVIDER_OPTIONS.map((option) => (
-                    <SelectItem key={option.id} value={option.id}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <span className="mt-1 block text-xs leading-6 text-stone-500">
-                {selectedAsrProvider.description}
-              </span>
-            </label>
-
-            {!selectedAsrProvider.supported ? (
-              <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-700">
-                当前版本只有豆包 ASR 已正式接入。你可以先保存这套兼容配置，但切换到这个 provider 后，识别链路仍然会提示“暂未接入”。
-              </div>
-            ) : (
-              <div className="rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] px-4 py-3 text-xs leading-6 text-stone-500">
-                识别配置会按 provider 分开保存。切换服务商时，这里的字段会切到对应 provider 的独立配置，不会互相覆盖。
-              </div>
-            )}
-
-            {selectedAsrProvider.id === "doubao" ? (
-              <>
-                <div className="grid gap-4 xl:grid-cols-2">
-                  <label className="text-sm">
-                    <span className="mb-1 block text-stone-500">APPID</span>
-                    <Input
-                      type="text"
-                      value={runtimeConfig.asrAppId}
-                      onChange={(e) => onRuntimeConfigChange({ asrAppId: e.target.value })}
-                      placeholder="输入豆包语音识别 APPID"
-                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                    />
-                  </label>
-                  <label className="text-sm">
-                    <span className="mb-1 block text-stone-500">Cluster</span>
-                    <Input
-                      type="text"
-                      value={runtimeConfig.asrCluster}
-                      onChange={(e) => onRuntimeConfigChange({ asrCluster: e.target.value })}
-                      placeholder="例如 volcengine_input_common"
-                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                    />
-                  </label>
-                  <label className="text-sm">
-                    <span className="mb-1 block text-stone-500">Access Token</span>
-                    <Input
-                      type="text"
-                      value={runtimeConfig.asrAccessToken}
-                      onChange={(e) => onRuntimeConfigChange({ asrAccessToken: e.target.value })}
-                      placeholder="输入 Access Token"
-                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                    />
-                  </label>
-                  <label className="text-sm">
-                    <span className="mb-1 block text-stone-500">Access Secret</span>
-                    <Input
-                      type="text"
-                      value={runtimeConfig.asrAccessSecret}
-                      onChange={(e) => onRuntimeConfigChange({ asrAccessSecret: e.target.value })}
-                      placeholder="输入 Access Secret"
-                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                    />
-                  </label>
-                  <label className="text-sm">
-                    <span className="mb-1 block text-stone-500">Auth Method</span>
-                    <Input
-                      type="text"
-                      value={runtimeConfig.asrAuthMethod}
-                      onChange={(e) => onRuntimeConfigChange({ asrAuthMethod: e.target.value })}
-                      placeholder="默认 token"
-                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                    />
-                  </label>
-                  <label className="text-sm">
-                    <span className="mb-1 block text-stone-500">Resource ID</span>
-                    <Input
-                      type="text"
-                      value={runtimeConfig.asrResourceId}
-                      onChange={(e) => onRuntimeConfigChange({ asrResourceId: e.target.value })}
-                      placeholder="例如 volc.bigasr.auc_turbo"
-                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                    />
-                  </label>
-                </div>
-
-                <div className="grid gap-4">
-                  <label className="text-sm">
-                    <span className="mb-1 block text-stone-500">WebSocket URL</span>
-                    <Input
-                      type="text"
-                      value={runtimeConfig.asrWsUrl}
-                      onChange={(e) => onRuntimeConfigChange({ asrWsUrl: e.target.value })}
-                      placeholder="输入 WebSocket 识别地址"
-                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                    />
-                  </label>
-                  <label className="text-sm">
-                    <span className="mb-1 block text-stone-500">Flash URL</span>
-                    <Input
-                      type="text"
-                      value={runtimeConfig.asrFlashUrl}
-                      onChange={(e) => onRuntimeConfigChange({ asrFlashUrl: e.target.value })}
-                      placeholder="输入 flash 接口地址"
-                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                    />
-                  </label>
-                </div>
-
-                <div className="rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] p-4">
-                  <div className="mb-3 text-sm font-medium text-stone-950">高级参数</div>
-                  <div className="grid gap-4 xl:grid-cols-3">
-                    <label className="text-sm">
-                      <span className="mb-1 block text-stone-500">Language</span>
-                      <Input
-                        type="text"
-                        value={runtimeConfig.asrLanguage}
-                        onChange={(e) => onRuntimeConfigChange({ asrLanguage: e.target.value })}
-                        placeholder="可选，如 zh-CN"
-                        className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                      />
-                    </label>
-                    <label className="text-sm">
-                      <span className="mb-1 block text-stone-500">Model Version</span>
-                      <Input
-                        type="text"
-                        value={runtimeConfig.asrModelVersion}
-                        onChange={(e) => onRuntimeConfigChange({ asrModelVersion: e.target.value })}
-                        placeholder="可选"
-                        className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                      />
-                    </label>
-                    <label className="text-sm">
-                      <span className="mb-1 block text-stone-500">SSD Version</span>
-                      <Input
-                        type="text"
-                        value={runtimeConfig.asrSsdVersion}
-                        onChange={(e) => onRuntimeConfigChange({ asrSsdVersion: e.target.value })}
-                        placeholder="可选"
-                        className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                      />
-                    </label>
-                  </div>
-
-                  <div className="mt-4 grid gap-4 xl:grid-cols-2">
-                    <label className="text-sm">
-                      <span className="mb-1 block text-stone-500">Boosting Table Name</span>
-                      <Input
-                        type="text"
-                        value={runtimeConfig.asrBoostingTableName}
-                        onChange={(e) => onRuntimeConfigChange({ asrBoostingTableName: e.target.value })}
-                        placeholder="可选"
-                        className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                      />
-                    </label>
-                    <label className="text-sm">
-                      <span className="mb-1 block text-stone-500">Correct Table Name</span>
-                      <Input
-                        type="text"
-                        value={runtimeConfig.asrCorrectTableName}
-                        onChange={(e) => onRuntimeConfigChange({ asrCorrectTableName: e.target.value })}
-                        placeholder="可选"
-                        className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                      />
-                    </label>
-                  </div>
-
-                  <label className="mt-4 block text-sm">
-                    <span className="mb-1 block text-stone-500">Common Words</span>
-                    <Textarea
-                      rows={4}
-                      value={runtimeConfig.asrCommonWords.join("\n")}
-                      onChange={(e) =>
-                        onRuntimeConfigChange({
-                          asrCommonWords: e.target.value
-                            .split(/\r?\n|,/)
-                            .map((item) => item.trim())
-                            .filter(Boolean),
-                        })
-                      }
-                      placeholder="每行一个热词"
-                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                    />
-                  </label>
-
-                  <label className="mt-4 block text-sm">
-                    <span className="mb-1 block text-stone-500">Context</span>
-                    <Textarea
-                      rows={4}
-                      value={runtimeConfig.asrContext}
-                      onChange={(e) => onRuntimeConfigChange({ asrContext: e.target.value })}
-                      placeholder="可选，传给识别服务的上下文 JSON"
-                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                    />
-                  </label>
-
-                  <div className="mt-4 grid gap-3 xl:grid-cols-2">
-                    {[
-                      ["asrEnableChannelSplit", runtimeConfig.asrEnableChannelSplit, "Channel Split"],
-                      ["asrEnableDdc", runtimeConfig.asrEnableDdc, "DDC"],
-                      ["asrEnableSpeakerInfo", runtimeConfig.asrEnableSpeakerInfo, "Speaker Info"],
-                      ["asrEnablePunc", runtimeConfig.asrEnablePunc, "Punctuation"],
-                      ["asrEnableItn", runtimeConfig.asrEnableItn, "ITN"],
-                    ].map(([key, checked, label]) => (
-                      <label
-                        key={String(key)}
-                        className="flex items-center justify-between gap-3 rounded-[14px] border border-stone-200 bg-[rgba(250,247,242,0.85)] px-4 py-3 text-sm"
-                      >
-                        <span className="font-medium text-stone-800">{label}</span>
-                        <Switch
-                          checked={Boolean(checked)}
-                          onCheckedChange={(nextChecked) =>
-                            onRuntimeConfigChange({ [String(key)]: nextChecked } as Partial<RuntimeConfig>)
-                          }
-                          className="data-[state=checked]:bg-stone-900 data-[state=unchecked]:bg-stone-200"
-                        />
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <div className="grid gap-4 xl:grid-cols-3">
-                <label className="text-sm">
-                  <span className="mb-1 block text-stone-500">API Key</span>
-                  <Input
-                    type="text"
-                    value={runtimeConfig.asrApiKey}
-                    onChange={(e) => onRuntimeConfigChange({ asrApiKey: e.target.value })}
-                    placeholder="输入兼容接口的 API Key"
-                    className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                  />
-                </label>
-                <label className="text-sm">
-                  <span className="mb-1 block text-stone-500">Base URL</span>
-                  <Input
-                    type="text"
-                    value={runtimeConfig.asrBaseUrl}
-                    onChange={(e) => onRuntimeConfigChange({ asrBaseUrl: e.target.value })}
-                    placeholder="输入识别接口 Base URL"
-                    className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                  />
-                </label>
-                <label className="text-sm">
-                  <span className="mb-1 block text-stone-500">Model</span>
-                  <Input
-                    type="text"
-                    value={runtimeConfig.asrCompatibleModel}
-                    onChange={(e) => onRuntimeConfigChange({ asrCompatibleModel: e.target.value })}
-                    placeholder="输入模型名"
-                    className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                  />
-                </label>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-      </div>
-
       <Card className="rounded-[18px] border-stone-200 bg-[rgba(246,243,238,0.56)] shadow-none">
         <CardHeader>
-          <CardTitle className="text-lg text-stone-950">Debug</CardTitle>
+          <CardTitle className="text-lg text-stone-950">识别服务</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <label className="flex items-center justify-between gap-3 rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] px-4 py-3 text-sm">
-            <span className="space-y-1">
-              <span className="block font-medium text-stone-950">启用 Debug 模式</span>
-              <span className="block text-xs leading-6 text-stone-500">
-                打开后会持续记录主进程与渲染层日志，适合排查线上问题。
-              </span>
+          <label className="text-sm">
+            <span className="mb-1 block text-stone-500">Provider</span>
+            <Select
+              value={selectedAsrProvider.id}
+              onValueChange={(value) => applyAsrProviderPreset(value as AsrProvider)}
+            >
+              <SelectTrigger className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]">
+                <SelectValue placeholder="选择语音识别服务" />
+              </SelectTrigger>
+              <SelectContent>
+                {ASR_PROVIDER_OPTIONS.map((option) => (
+                  <SelectItem key={option.id} value={option.id}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <span className="mt-1 block text-xs leading-6 text-stone-500">
+              {selectedAsrProvider.description}
             </span>
-            <Switch
-              checked={runtimeConfig.debugEnabled}
-              onCheckedChange={(checked) => onRuntimeConfigChange({ debugEnabled: checked })}
-              className="data-[state=checked]:bg-stone-900 data-[state=unchecked]:bg-stone-200"
-            />
           </label>
 
-          <div className="space-y-2 rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-medium text-stone-950">实时日志</div>
-                <div className="text-xs leading-6 text-stone-500">
-                  {runtimeConfig.debugEnabled
-                    ? `已收集 ${debugLogLines.length} 条日志`
-                    : "打开开关后会开始实时收集日志"}
-                </div>
-              </div>
-              <div className="text-[11px] leading-5 text-stone-400">
-                {debugLogPath ? `文件：${debugLogPath}` : "日志文件路径将在桌面端生成"}
-              </div>
+          {!selectedAsrProvider.supported ? (
+            <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-700">
+              当前版本只有豆包 ASR 已正式接入。你可以先保存这套兼容配置，但切换到这个 provider 后，识别链路仍然会提示“暂未接入”。
             </div>
-
-            <div className="flex justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClearDebugLogs}
-                className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)] text-stone-700 hover:bg-[rgba(250,246,240,0.7)]"
-              >
-                清空日志
-              </Button>
+          ) : (
+            <div className="rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] px-4 py-3 text-xs leading-6 text-stone-500">
+              豆包目前只保留 3 个必填项：`APPID / Access Token / Access Secret`。其余服务参数使用内置默认值，避免增加配置心智负担。
             </div>
+          )}
 
-            <Textarea
-              ref={debugLogRef}
-              readOnly
-              rows={12}
-              value={
-                debugLogLines.length > 0
-                  ? debugLogLines.join("\n")
-                  : runtimeConfig.debugEnabled
-                    ? "等待新的日志输出..."
-                    : "Debug 模式未开启。"
-              }
-              className="min-h-[260px] resize-none rounded-md border-stone-200 bg-[rgba(250,247,242,0.9)] font-mono text-[11px] leading-5 text-stone-700"
-            />
-          </div>
+          {selectedAsrProvider.id === "doubao" ? (
+            <div className="grid gap-4 xl:grid-cols-3">
+              <label className="text-sm">
+                <span className="mb-1 block text-stone-500">APPID</span>
+                <Input
+                  type="text"
+                  value={runtimeConfig.asrAppId}
+                  onChange={(e) => onRuntimeConfigChange({ asrAppId: e.target.value })}
+                  placeholder="输入豆包语音识别 APPID"
+                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                />
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-stone-500">Access Token</span>
+                <Input
+                  type="text"
+                  value={runtimeConfig.asrAccessToken}
+                  onChange={(e) => onRuntimeConfigChange({ asrAccessToken: e.target.value })}
+                  placeholder="输入 Access Token"
+                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                />
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-stone-500">Access Secret</span>
+                <Input
+                  type="text"
+                  value={runtimeConfig.asrAccessSecret}
+                  onChange={(e) => onRuntimeConfigChange({ asrAccessSecret: e.target.value })}
+                  placeholder="输入 Access Secret"
+                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                />
+              </label>
+            </div>
+          ) : (
+            <div className="grid gap-4 xl:grid-cols-3">
+              <label className="text-sm">
+                <span className="mb-1 block text-stone-500">API Key</span>
+                <Input
+                  type="text"
+                  value={runtimeConfig.asrApiKey}
+                  onChange={(e) => onRuntimeConfigChange({ asrApiKey: e.target.value })}
+                  placeholder="输入兼容接口的 API Key"
+                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                />
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-stone-500">Base URL</span>
+                <Input
+                  type="text"
+                  value={runtimeConfig.asrBaseUrl}
+                  onChange={(e) => onRuntimeConfigChange({ asrBaseUrl: e.target.value })}
+                  placeholder="输入识别接口 Base URL"
+                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                />
+              </label>
+              <label className="text-sm">
+                <span className="mb-1 block text-stone-500">Model</span>
+                <Input
+                  type="text"
+                  value={runtimeConfig.asrCompatibleModel}
+                  onChange={(e) => onRuntimeConfigChange({ asrCompatibleModel: e.target.value })}
+                  placeholder="输入模型名"
+                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                />
+              </label>
+            </div>
+          )}
         </CardContent>
       </Card>
 

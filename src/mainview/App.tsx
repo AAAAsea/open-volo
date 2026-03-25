@@ -13,6 +13,7 @@ import { HistoryModule } from "./components/modules/HistoryModule";
 import { HomeModule } from "./components/modules/HomeModule";
 import { DictionaryModule } from "./components/modules/DictionaryModule";
 import { SettingsModule } from "./components/modules/SettingsModule";
+import { AboutModule } from "./components/modules/AboutModule";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { encodeWav } from "./lib/audio";
 import { loadHistory, loadStats, pruneHistoryByLimit, saveHistory, saveStats } from "./lib/records";
@@ -507,38 +508,43 @@ export default function App() {
 
     const offTranscription = window.volo.onTranscription(
       ({ text, originalText, refinedText, audioPath, durationMs }) => {
-      const original = originalText || text;
-      const refined = refinedText || text;
+        // Main-process cleanup may arrive a beat later; drop the local "refining"
+        // state as soon as final text is ready so the UI feels finished on paste.
+        setStage("idle");
 
-      const processed = applyModeTransform(refined, modeRef.current);
+        const original = originalText || text;
+        const refined = refinedText || text;
 
-      setStats((prev) => ({
-        sessionCount: prev.sessionCount + 1,
-        totalDurationMs: prev.totalDurationMs + durationMs,
-        totalChars: prev.totalChars + processed.length,
-      }));
+        const processed = applyModeTransform(refined, modeRef.current);
 
-      setHistory((prev) => {
-        const nextItem: VoiceHistoryItem = {
-          id: createHistoryId(),
-          text: original,
-          processedText: refined,
-          mode: modeRef.current,
-          textRefineEnabled: runtimeConfigRef.current.textRefineEnabled,
-          durationMs,
-          createdAt: new Date().toISOString(),
-          audioPath,
-        };
-        const next = pruneHistoryByLimit([nextItem, ...prev], HISTORY_MAX_ITEMS);
-        saveHistory(next);
-        return next;
-      });
+        setStats((prev) => ({
+          sessionCount: prev.sessionCount + 1,
+          totalDurationMs: prev.totalDurationMs + durationMs,
+          totalChars: prev.totalChars + processed.length,
+        }));
 
-      const inserted = insertToCurrentInput(processed);
-      if (!inserted) {
-        // keep external hint only; we no longer render local fallback input panel
-      }
-    });
+        setHistory((prev) => {
+          const nextItem: VoiceHistoryItem = {
+            id: createHistoryId(),
+            text: original,
+            processedText: refined,
+            mode: modeRef.current,
+            textRefineEnabled: runtimeConfigRef.current.textRefineEnabled,
+            durationMs,
+            createdAt: new Date().toISOString(),
+            audioPath,
+          };
+          const next = pruneHistoryByLimit([nextItem, ...prev], HISTORY_MAX_ITEMS);
+          saveHistory(next);
+          return next;
+        });
+
+        const inserted = insertToCurrentInput(processed);
+        if (!inserted) {
+          // keep external hint only; we no longer render local fallback input panel
+        }
+      },
+    );
 
     const offInputHint = window.volo.onInputHint(({ message }) => {
       if (showPermissionCenter && message.includes("权限")) {
@@ -1258,9 +1264,6 @@ export default function App() {
                     captureShortcutMode={captureShortcutMode}
                     shortcutFeedback={shortcutFeedback}
                     runtimeConfig={runtimeConfig}
-                    updateState={updateState}
-                    debugLogLines={debugLogLines}
-                    debugLogPath={debugLogPath}
                     audioInputDevices={audioInputDevices}
                     audioInputDevicesLoading={audioInputDevicesLoading}
                     microphonePermission={permissions.microphone}
@@ -1268,14 +1271,24 @@ export default function App() {
                     isShortcutActive={isShortcutActive}
                     registrationState={shortcutRegistrationState}
                     onCaptureShortcut={toggleCaptureShortcutMode}
+                    onRuntimeConfigChange={updateRuntimeConfig}
+                    onRefreshAudioInputDevices={() => {
+                      void refreshAudioInputDevices();
+                    }}
+                  />
+                )}
+
+                {section === "about" && (
+                  <AboutModule
+                    runtimeConfig={runtimeConfig}
+                    updateState={updateState}
+                    debugLogLines={debugLogLines}
+                    debugLogPath={debugLogPath}
                     onCheckForUpdates={checkForUpdates}
                     onDownloadUpdate={downloadUpdate}
                     onInstallUpdate={installUpdate}
                     onClearDebugLogs={clearDebugLogs}
                     onRuntimeConfigChange={updateRuntimeConfig}
-                    onRefreshAudioInputDevices={() => {
-                      void refreshAudioInputDevices();
-                    }}
                   />
                 )}
               </main>

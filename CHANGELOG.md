@@ -2,17 +2,26 @@
 
 All notable changes to Volo are recorded here.
 
-This project loosely follows Keep a Changelog and uses semantic version tags such as `v0.1.0`.
+This project loosely follows Keep a Changelog and uses semantic version tags such as `v0.1.1`.
 
 ## [Unreleased]
+
+## [0.1.1] - 2026-03-25
 
 ### Added
 
 - Added provider-based ASR settings, so speech recognition credentials are now grouped by service provider and no longer look like unlabeled generic fields.
+- Added a dedicated `关于` tab that brings app identity, version details, updates, and debug tools into one place.
 
 ### Changed
 
 - Changed the ASR settings panel to expose Doubao-specific fields explicitly, while reserving a separate config bucket for future compatible providers.
+- Changed the Doubao ASR form to keep only the three required fields: `APPID`, `Access Token`, and `Access Secret`.
+- Changed settings layout so the speech recognition section uses the full content width instead of reading like a half-card panel.
+
+### Fixed
+
+- Fixed the main app stage so the local `润色中` UI ends as soon as final text arrives, instead of lingering after paste has already finished.
 
 ## [0.1.0] - 2026-03-25
 

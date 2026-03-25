@@ -46,7 +46,7 @@ export type ModeOption = {
   description: string;
 };
 
-export type AppSection = "home" | "history" | "dictionary" | "settings";
+export type AppSection = "home" | "history" | "dictionary" | "settings" | "about";
 
 export type AppNavItem = {
   id: AppSection;

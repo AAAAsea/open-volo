@@ -42,6 +42,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
   { id: "history", label: "历史记录", description: "本地历史记录" },
   { id: "dictionary", label: "词典", description: "常用词与术语" },
   { id: "settings", label: "设置", description: "快捷键与识别服务" },
+  { id: "about", label: "关于", description: "版本、更新与调试" },
 ];
 
 export const WAVEFORM_BARS = 28;

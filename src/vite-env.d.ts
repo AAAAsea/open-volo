@@ -3,6 +3,11 @@ declare module "*?raw" {
   export default content;
 }
 
+declare module "*.png" {
+  const src: string;
+  export default src;
+}
+
 declare abstract class AudioWorkletProcessor {
   readonly port: MessagePort;
   process(
