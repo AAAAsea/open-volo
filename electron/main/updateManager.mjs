@@ -12,9 +12,43 @@ function normalizeReleaseDate(value) {
   return Number.isNaN(date.getTime()) ? '' : date.toISOString();
 }
 
+function stripHtml(text) {
+  return String(text)
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/p>/gi, '\n\n')
+    .replace(/<\/li>/gi, '\n')
+    .replace(/<li>/gi, '- ')
+    .replace(/<[^>]+>/g, ' ');
+}
+
+function decodeHtmlEntities(text) {
+  return String(text)
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+}
+
+function cleanupReleaseText(text) {
+  const normalized = decodeHtmlEntities(stripHtml(text))
+    .replace(/\r/g, '')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+
+  if (!normalized) return '';
+  if (/^Full Changelog:/i.test(normalized)) {
+    return '';
+  }
+
+  return normalized;
+}
+
 function normalizeReleaseNotes(releaseNotes) {
   if (typeof releaseNotes === 'string') {
-    return releaseNotes.trim();
+    return cleanupReleaseText(releaseNotes);
   }
 
   if (Array.isArray(releaseNotes)) {
@@ -22,7 +56,7 @@ function normalizeReleaseNotes(releaseNotes) {
       .map((item) => {
         if (!item) return '';
         const version = item.version ? `v${item.version}` : '';
-        const note = typeof item.note === 'string' ? item.note.trim() : '';
+        const note = typeof item.note === 'string' ? cleanupReleaseText(item.note) : '';
         return [version, note].filter(Boolean).join('\n');
       })
       .filter(Boolean)

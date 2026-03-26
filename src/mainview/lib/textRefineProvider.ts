@@ -28,7 +28,7 @@ export const TEXT_REFINE_PROVIDER_PRESETS: Record<TextRefineProvider, TextRefine
   },
   glm: {
     id: "glm",
-    label: "智谱 GLM 4.7 Flash",
+    label: "智谱",
     description: "智谱 OpenAI 兼容接口，适合轻量文本修正。",
     baseUrl: "https://open.bigmodel.cn/api/paas/v4",
     model: "glm-4.7-flash",

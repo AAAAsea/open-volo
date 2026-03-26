@@ -9,7 +9,7 @@ export const TEXT_REFINE_PROVIDER_PRESETS = {
   },
   glm: {
     id: 'glm',
-    label: '智谱 GLM 4.7 Flash',
+    label: '智谱',
     baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
     model: 'glm-4.7-flash',
   },

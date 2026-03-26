@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { startTransition, useEffect, useRef, useState } from "react";
 import workletCode from "./audio-worklet.js?raw";
+import logoUrl from "../../assets/branding/volo.png";
 import type { VoiceStage } from "../shared/voiceRpc";
 import {
   FN_SHORTCUT,
@@ -220,6 +221,7 @@ export default function App() {
   const shortcutStateTimeoutRef = useRef<number | null>(null);
   const skipInitialShortcutSyncRef = useRef(true);
   const shortcutPreviewTimeoutRef = useRef<number | null>(null);
+  const contentViewportRef = useRef<HTMLDivElement | null>(null);
 
   const scheduleShortcutRegistrationReset = () => {
     if (shortcutStateTimeoutRef.current !== null) {
@@ -478,6 +480,12 @@ export default function App() {
   }, [section]);
 
   useEffect(() => {
+    const viewport = contentViewportRef.current;
+    if (!viewport) return;
+    viewport.scrollTo({ top: 0, behavior: "auto" });
+  }, [section]);
+
+  useEffect(() => {
     localStorage.setItem(SHORTCUT_STORAGE_KEY, JSON.stringify(shortcut));
   }, [shortcut]);
 
@@ -486,6 +494,11 @@ export default function App() {
   }, [stats]);
 
   useEffect(() => {
+    if (typeof Image !== "undefined") {
+      const img = new Image();
+      img.src = logoUrl;
+    }
+
     const offStatus = window.volo.onStatus((payload) => {
       setStage(payload.stage);
       if (payload.stage === "idle") {
@@ -1218,11 +1231,21 @@ export default function App() {
 
         <div className="mt-4 grid min-h-0 flex-1 grid-cols-[280px,1fr] gap-4">
           <div className="min-h-0 h-full">
-            <AppSidebar active={section} onChange={setSection} />
+            <AppSidebar
+              active={section}
+              onChange={(next) => {
+                startTransition(() => {
+                  setSection(next);
+                });
+              }}
+            />
           </div>
 
           <div className="relative min-h-0 h-full">
-            <ScrollArea className="h-full min-h-0 rounded-[18px] border border-white/60 bg-[rgba(244,239,232,0.82)] shadow-[0_6px_18px_rgba(44,31,18,0.05)]">
+            <ScrollArea
+              viewportRef={contentViewportRef}
+              className="h-full min-h-0 rounded-[18px] border border-white/60 bg-[rgba(244,239,232,0.82)] shadow-[0_6px_18px_rgba(44,31,18,0.05)]"
+            >
               <main className="mx-auto min-h-full w-full max-w-[1120px] space-y-4 p-5">
                 {section === "home" && (
                   <HomeModule

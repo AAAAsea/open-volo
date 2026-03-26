@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { RuntimeConfig, UpdateState } from "../../types";
 
 const REPO_URL = "https://github.com/AAAAsea/open-volo";
+const RELEASES_URL = `${REPO_URL}/releases`;
 
 type AboutModuleProps = {
   runtimeConfig: RuntimeConfig;
@@ -55,6 +56,7 @@ export function AboutModule({
     error: updateState.error || "检查更新失败，请稍后再试。",
     unsupported: updateState.error || "当前环境暂不支持端内更新。",
   } satisfies Record<UpdateState["status"], string>;
+  const hasReleaseNotes = Boolean(updateState.releaseNotes.trim());
 
   return (
     <section className="space-y-6">
@@ -69,9 +71,12 @@ export function AboutModule({
         <CardContent className="pt-6">
           <div className="grid gap-6 lg:grid-cols-[168px,1fr] lg:items-center">
             <div className="flex justify-center lg:justify-start">
-              <div className="flex h-36 w-36 items-center justify-center rounded-[32px] border border-white/80 bg-[linear-gradient(145deg,rgba(255,252,248,0.96),rgba(232,220,205,0.9))] shadow-[0_18px_36px_rgba(74,52,33,0.12)]">
-                <img src={logoUrl} alt="Volo icon" className="h-24 w-24 object-contain" />
-              </div>
+              <img
+                src={logoUrl}
+                alt="Volo icon"
+                decoding="async"
+                className="h-32 w-32 rounded-[30px] object-cover shadow-[0_22px_40px_rgba(74,52,33,0.18)]"
+              />
             </div>
 
             <div className="space-y-4">
@@ -156,7 +161,7 @@ export function AboutModule({
               </div>
             ) : null}
 
-            {updateState.releaseNotes ? (
+            {hasReleaseNotes ? (
               <div className="mt-4 space-y-2">
                 <div className="text-sm font-medium text-stone-950">发布说明</div>
                 <Textarea
@@ -166,9 +171,23 @@ export function AboutModule({
                   className="resize-none rounded-md border-stone-200 bg-[rgba(250,247,242,0.9)] text-xs leading-6 text-stone-700"
                 />
               </div>
-            ) : null}
+            ) : (
+              <div className="mt-4 rounded-[16px] border border-stone-200 bg-[rgba(250,247,242,0.72)] px-4 py-3 text-xs leading-6 text-stone-500">
+                当前 Release 没有附带可读的详细说明。可以前往 GitHub Releases 查看完整发布页。
+              </div>
+            )}
 
             <div className="mt-4 flex flex-wrap justify-end gap-3">
+              <Button
+                asChild
+                type="button"
+                variant="outline"
+                className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)] text-stone-700 hover:bg-[rgba(250,246,240,0.7)]"
+              >
+                <a href={RELEASES_URL} target="_blank" rel="noreferrer">
+                  查看 Releases
+                </a>
+              </Button>
               <Button
                 type="button"
                 variant="outline"

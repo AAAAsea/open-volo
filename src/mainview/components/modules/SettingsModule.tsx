@@ -300,7 +300,7 @@ export function SettingsModule({
             </div>
           ) : (
             <div className="rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] px-4 py-3 text-xs leading-6 text-stone-500">
-              豆包目前只保留 3 个必填项：`APPID / Access Token / Access Secret`。其余服务参数使用内置默认值，避免增加配置心智负担。
+              豆包目前只保留 3 个必填项：`APPID / Access Token / Secret Key`。其余服务参数使用内置默认值，避免增加配置心智负担。
             </div>
           )}
 
@@ -327,12 +327,12 @@ export function SettingsModule({
                 />
               </label>
               <label className="text-sm">
-                <span className="mb-1 block text-stone-500">Access Secret</span>
+                <span className="mb-1 block text-stone-500">Secret Key</span>
                 <Input
                   type="text"
                   value={runtimeConfig.asrAccessSecret}
                   onChange={(e) => onRuntimeConfigChange({ asrAccessSecret: e.target.value })}
-                  placeholder="输入 Access Secret"
+                  placeholder="输入 Secret Key"
                   className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
                 />
               </label>
