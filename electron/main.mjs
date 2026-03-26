@@ -207,7 +207,7 @@ const runtimeConfigStore = createRuntimeConfigStore({
     updateCancelShortcut(prevCancelShortcut);
   },
 });
-const MAX_RECORDING_SECONDS = 60;
+const MAX_RECORDING_SECONDS = 3600;
 const compactBubbleSize = { width: 124, height: 40 };
 const messageBubbleSize = { width: 336, height: 150 };
 const resultBubbleSize = { width: 336, height: 276 };

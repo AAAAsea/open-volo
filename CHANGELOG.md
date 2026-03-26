@@ -2,9 +2,28 @@
 
 All notable changes to Volo are recorded here.
 
-This project loosely follows Keep a Changelog and uses semantic version tags such as `v0.1.1`.
+This project loosely follows Keep a Changelog and uses semantic version tags such as `v0.1.2`.
 
 ## [Unreleased]
+
+## [0.1.2] - 2026-03-26
+
+### Added
+
+- Added a release notes extraction step so GitHub Releases now use the matching `CHANGELOG.md` section instead of generic compare links.
+
+### Changed
+
+- Changed the About tab icon presentation to use the app image directly with rounded corners and shadow, without the extra framed padding layer.
+- Changed the Doubao ASR field label from `Access Secret` to `Secret Key`.
+- Changed the 智谱 preset label to the shorter `智谱`.
+- Changed the recording time limit from 60 seconds to 1 hour.
+
+### Fixed
+
+- Fixed tab switching so the main content area now scrolls back to the top when entering a new section.
+- Fixed About tab release notes rendering by stripping HTML-only compare output into readable text and falling back to the GitHub Releases page when no meaningful notes exist.
+- Fixed the first About tab open feeling delayed by preloading the app icon and moving section switching onto a transition.
 
 ## [0.1.1] - 2026-03-25
 
