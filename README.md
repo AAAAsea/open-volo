@@ -9,6 +9,10 @@
 </p>
 
 <p align="center">
+  <a href="./README.zh-CN.md">中文</a> · <strong>English</strong>
+</p>
+
+<p align="center">
   <img src="https://img.shields.io/badge/Electron-37-47848F?logo=electron&logoColor=white" alt="Electron 37" />
   <img src="https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white" alt="React 19" />
   <img src="https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white" alt="TypeScript 5" />
@@ -16,26 +20,26 @@
   <img src="https://img.shields.io/badge/License-MIT-16A34A" alt="MIT License" />
 </p>
 
-Volo 是一个基于 Electron 的语音输入桌面应用。它通过快捷键唤起悬浮胶囊，完成录音、云端转写、文本修正，并把结果回填到当前输入场景。
+Volo is an Electron-based desktop voice input app. It lets users trigger a floating capsule with a shortcut, record speech, run cloud transcription plus optional cleanup, and insert the final text back into the current input context.
 
-当前仓库主要维护 macOS 体验，同时保留 Windows 打包与分发链路。
+The repository is maintained with macOS experience as the first priority, while keeping Windows packaging and distribution fully supported.
 
 ## Highlights
 
-- 快捷键按住说话，松开结束
-- 悬浮胶囊反馈录音、转写和润色状态
-- 跨应用粘贴与剪贴板恢复
-- 历史记录、词典、调试日志
-- AI 文本修正与 OpenAI-compatible provider 支持
+- Hold-to-talk shortcut flow
+- Floating bubble for recording, transcription, and refine status
+- Cross-app paste with clipboard restore
+- History, dictionary, and debug logs
+- AI text cleanup with OpenAI-compatible providers
 
-## 技术栈
+## Tech Stack
 
-- 桌面框架：Electron
-- 前端：React 19 + Vite 6 + Tailwind CSS
-- 语音识别：火山引擎 ASR
-- 文本修正：OpenAI-compatible provider
-- 打包发布：electron-builder + GitHub Actions
-- 自动更新：electron-updater + GitHub Releases
+- Desktop framework: Electron
+- Frontend: React 19 + Vite 6 + Tailwind CSS
+- Speech recognition: Doubao / Volcengine ASR
+- Text cleanup: OpenAI-compatible providers
+- Packaging: electron-builder + GitHub Actions
+- Auto update: electron-updater + GitHub Releases
 
 ## Quick Start
 
@@ -45,79 +49,80 @@ cp .env.example .env
 pnpm run dev
 ```
 
-## 本地开发
+## Local Development
 
-1. 安装依赖
+1. Install dependencies
 
 ```bash
 pnpm install
 ```
 
-2. 复制环境变量模板并填写自己的服务配置
+2. Copy the env template and fill in your own service credentials
 
 ```bash
 cp .env.example .env
 ```
 
-3. 启动开发环境
+3. Start the development environment
 
 ```bash
 pnpm run dev
 ```
 
-常用命令：
+Useful commands:
 
 ```bash
+pnpm exec tsc --noEmit
 pnpm run build
 pnpm run dist:mac
 pnpm run dist:win
 pnpm run generate:icons
 ```
 
-打包产物默认输出到 `release/` 目录。
+Build artifacts are written to `release/` by default.
 
-## 项目结构
+## Project Structure
 
-- `electron/`: 主进程、权限、录音控制、跨应用粘贴、更新管理
-- `src/mainview/`: React 主界面、浮窗 UI、设置与历史记录
-- `scripts/`: helper 构建、图标生成、notarize 脚本
-- `assets/`: 品牌图标与桌面应用图标资源
+- `electron/`: main process, permissions, recording control, cross-app paste, update manager
+- `src/mainview/`: main React UI, floating bubble UI, settings, history
+- `scripts/`: helper build scripts, icon generation, notarization, release note extraction
+- `assets/`: branding and packaged app icons
 
-## Helper 与本地二进制
+## Helpers and Local Binaries
 
-macOS 相关的 Swift helper 不再以编译产物形式提交到仓库：
+macOS-specific Swift helpers are kept in source form and are not committed as built binaries:
 
 - `electron/resources/fn-monitor.swift`
 - `electron/resources/input-helper.swift`
 
-开发环境会在需要时自动编译，`pnpm run build` 也会在 macOS 上生成对应二进制再参与打包。
+During local development they are built automatically when needed. `pnpm run build` also rebuilds the required binaries on macOS before packaging.
 
-## 配置
+## Configuration
 
-仓库提供了 [.env.example](./.env.example) 作为配置模板，包含：
+The repository provides [.env.example](./.env.example) as a starting point for:
 
-- ASR 接入参数
-- 文本修正 provider 配置
-- 调试与运行时开关
+- ASR credentials
+- text cleanup provider config
+- debug and runtime flags
 
-请不要把真实密钥、证书、账号密码提交到仓库。
+Do not commit real keys, certificates, or account credentials.
 
-## 版本与发布
+## Versions and Releases
 
-- 变更记录维护在 [CHANGELOG.md](./CHANGELOG.md)
-- 版本发布使用 [release.yml](./.github/workflows/release.yml)
-- 推送形如 `v0.1.0` 的 tag 时，CI 会校验 tag 与 `package.json` 版本一致后再构建发布
+- Changes are tracked in [CHANGELOG.md](./CHANGELOG.md)
+- Releases are built by [release.yml](./.github/workflows/release.yml)
+- Pushing a tag like `v0.1.2` triggers CI, which verifies the tag matches `package.json`
 
-GitHub Release 同时承担自动更新源：
+GitHub Releases also act as the update source:
 
-- macOS 使用 `zip + latest-mac.yml`
-- Windows 使用 `NSIS + latest.yml`
+- macOS uses `zip + latest-mac.yml`
+- Windows uses `NSIS + latest.yml`
 
-开发环境默认不检查更新，请使用 `dist` 产物验证完整升级流程。
+Development builds do not check for updates. Use packaged artifacts when validating the full update flow.
 
-### 维护者说明
+### Maintainer Notes
 
-如需在 GitHub Actions 中发布 macOS 版本，需要为仓库配置这些 secrets：
+To publish macOS builds in GitHub Actions, configure these repository secrets:
 
 - `APPLE_CERTIFICATE_P12_BASE64`
 - `APPLE_CERTIFICATE_PASSWORD`
@@ -125,20 +130,20 @@ GitHub Release 同时承担自动更新源：
 - `APPLE_TEAM_ID`
 - `APPLE_APP_SPECIFIC_PASSWORD`
 
-本地手动发布 macOS 可使用：
+For local signed macOS release work:
 
 ```bash
 pnpm run dist:mac:signed
 pnpm run notarize:mac
 ```
 
-## 开源协作
+## Open Source Collaboration
 
 - License: [MIT](./LICENSE)
-- 贡献说明： [CONTRIBUTING.md](./CONTRIBUTING.md)
-- 影响用户可见行为、打包链路或发布流程的改动，需要同步更新 `CHANGELOG.md`
+- Contribution guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- If a change affects user-visible behavior, packaging, or release flow, update `CHANGELOG.md`
 
-## 维护约定
+## Maintenance Rules
 
-- CI 与本地打包命令应尽量复用同一条链路
-- 发布前确认 `CHANGELOG.md`、`package.json` 版本号和 Git tag 一致
+- Keep CI and local packaging paths aligned whenever possible
+- Before releasing, make sure `CHANGELOG.md`, `package.json`, and the Git tag all match
