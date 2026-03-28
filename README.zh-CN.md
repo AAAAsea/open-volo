@@ -141,6 +141,7 @@ pnpm run notarize:mac
 
 - License: [MIT](./LICENSE)
 - 贡献说明：[CONTRIBUTING.md](./CONTRIBUTING.md)
+- **禁止直接推送到 `main` 分支** — 所有改动必须通过 Pull Request 合并
 - 如果改动影响用户可见行为、打包链路或发布流程，请同步更新 `CHANGELOG.md`
 
 ## 维护约定

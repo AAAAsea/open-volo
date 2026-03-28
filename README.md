@@ -141,6 +141,7 @@ pnpm run notarize:mac
 
 - License: [MIT](./LICENSE)
 - Contribution guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
+- **Do not push directly to `main`** — all changes must go through Pull Requests
 - If a change affects user-visible behavior, packaging, or release flow, update `CHANGELOG.md`
 
 ## Maintenance Rules
