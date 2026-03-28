@@ -157,7 +157,7 @@ function getAsrConfig() {
     if (!raw) return fallback;
     return raw !== '0' && raw.toLowerCase() !== 'false';
   };
-  const model = 'bigmodel_flash';
+  const model = getEnvValue('VOLO_ASR_MODEL') || 'bigmodel_flash';
   const provider = getEnvValue('VOLO_ASR_PROVIDER') || 'doubao';
   const appid = getEnvValue('VOLO_ASR_APPID', 'APPID', 'ASR_APPID');
   const token = getEnvValue('VOLO_ASR_ACCESS_TOKEN', 'ACCESS_TOKEN', 'ASR_ACCESS_TOKEN');

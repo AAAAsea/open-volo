@@ -1,5 +1,14 @@
 export type AsrProvider = "doubao" | "custom-compatible";
 
+export type AsrModelPreset = {
+  id: string;
+  label: string;
+  description: string;
+  wsUrl: string;
+  flashUrl: string;
+  resourceId: string;
+};
+
 export type AsrProviderPreset = {
   id: AsrProvider;
   label: string;
@@ -54,6 +63,41 @@ export const ASR_PROVIDER_PRESETS: Record<AsrProvider, AsrProviderPreset> = {
 
 export const ASR_PROVIDER_OPTIONS = Object.values(ASR_PROVIDER_PRESETS);
 
+export const DOUBAO_ASR_MODEL_PRESETS: AsrModelPreset[] = [
+  {
+    id: "bigmodel_flash",
+    label: "bigmodel_flash（推荐）",
+    description: "短语音实时识别，响应快，适合语音输入场景",
+    wsUrl: "wss://openspeech.bytedance.com/api/v2/asr",
+    flashUrl: "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash",
+    resourceId: "volc.bigasr.auc_turbo",
+  },
+  {
+    id: "bigmodel",
+    label: "bigmodel（长语音）",
+    description: "长语音流式识别，适合长句或连续输入",
+    wsUrl: "wss://openspeech.bytedance.com/api/v2/asr",
+    flashUrl: "",
+    resourceId: "volc.bigasr.auc_turbo",
+  },
+  {
+    id: "volcengine_streaming",
+    label: "volcengine_streaming",
+    description: "火山引擎流式识别通用接口",
+    wsUrl: "wss://openspeech.bytedance.com/api/v2/asr",
+    flashUrl: "",
+    resourceId: "volc.bigasr.auc_turbo",
+  },
+  {
+    id: "custom",
+    label: "自定义接口地址",
+    description: "手动填写 WS URL 和 Flash URL",
+    wsUrl: "",
+    flashUrl: "",
+    resourceId: "",
+  },
+];
+
 function createEmptyAsrProviderConfig(): AsrProviderConfig {
   return {
     appId: "",
@@ -89,6 +133,10 @@ export function normalizeAsrProvider(value?: string): AsrProvider {
 
 export function getAsrProviderPreset(value?: string): AsrProviderPreset {
   return ASR_PROVIDER_PRESETS[normalizeAsrProvider(value)];
+}
+
+export function getDoubaoModelPreset(id?: string): AsrModelPreset {
+  return DOUBAO_ASR_MODEL_PRESETS.find((p) => p.id === id) ?? DOUBAO_ASR_MODEL_PRESETS[0];
 }
 
 export function createDefaultAsrProviderConfigs(): AsrProviderConfigs {

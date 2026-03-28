@@ -17,6 +17,8 @@ import {
   ASR_PROVIDER_OPTIONS,
   getAsrProviderConfig,
   getAsrProviderPreset,
+  DOUBAO_ASR_MODEL_PRESETS,
+  getDoubaoModelPreset,
   type AsrProvider,
 } from "../../lib/asrProvider";
 import {
@@ -103,6 +105,7 @@ export function SettingsModule({
     Boolean(runtimeConfig.audioInputDeviceId) &&
     !audioInputDevices.some((device) => device.deviceId === runtimeConfig.audioInputDeviceId);
   const selectedAsrProvider = getAsrProviderPreset(runtimeConfig.asrProvider);
+  const selectedDoubaoModel = getDoubaoModelPreset(runtimeConfig.asrModel);
   const selectedTextRefineProvider = getTextRefineProviderPreset(runtimeConfig.textRefineProvider);
 
   const applyTextRefineProviderPreset = (provider: TextRefineProvider) => {
@@ -539,12 +542,68 @@ export function SettingsModule({
             </div>
           ) : (
             <div className="rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] px-4 py-3 text-xs leading-6 text-stone-500">
-              豆包目前只保留 3 个必填项：`APPID / Access Token / Secret Key`。其余服务参数使用内置默认值，避免增加配置心智负担。
+              豆包 ASR 支持多个模型，通过接口地址区分。不同的 WS URL 对应不同的识别能力与定价。
             </div>
           )}
 
           {selectedAsrProvider.id === "doubao" ? (
-            <div className="grid gap-4 xl:grid-cols-3">
+            <div className="space-y-4">
+              <label className="text-sm">
+                <span className="mb-1 block text-stone-500">模型</span>
+                <Select
+                  value={runtimeConfig.asrModel || "bigmodel_flash"}
+                  onValueChange={(value) => {
+                    const preset = getDoubaoModelPreset(value);
+                    onRuntimeConfigChange({
+                      asrModel: preset.id,
+                      asrWsUrl: preset.wsUrl,
+                      asrFlashUrl: preset.flashUrl,
+                      asrResourceId: preset.resourceId,
+                    });
+                  }}
+                >
+                  <SelectTrigger className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]">
+                    <SelectValue placeholder="选择模型" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {DOUBAO_ASR_MODEL_PRESETS.map((preset) => (
+                      <SelectItem key={preset.id} value={preset.id}>
+                        <div>
+                          <div className="font-medium">{preset.label}</div>
+                          <div className="text-xs text-stone-500">{preset.description}</div>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+
+              {selectedDoubaoModel.id === "custom" && (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  <label className="text-sm">
+                    <span className="mb-1 block text-stone-500">WS URL</span>
+                    <Input
+                      type="text"
+                      value={runtimeConfig.asrWsUrl}
+                      onChange={(e) => onRuntimeConfigChange({ asrWsUrl: e.target.value })}
+                      placeholder="wss://openspeech.bytedance.com/api/v2/asr"
+                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                    />
+                  </label>
+                  <label className="text-sm">
+                    <span className="mb-1 block text-stone-500">Flash URL</span>
+                    <Input
+                      type="text"
+                      value={runtimeConfig.asrFlashUrl}
+                      onChange={(e) => onRuntimeConfigChange({ asrFlashUrl: e.target.value })}
+                      placeholder="https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash"
+                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                    />
+                  </label>
+                </div>
+              )}
+
+              <div className="grid gap-4 xl:grid-cols-3">
               <label className="text-sm">
                 <span className="mb-1 block text-stone-500">APPID</span>
                 <Input
