@@ -63,6 +63,17 @@
     @apply bg-background text-foreground;
     font-family: "Manrope", "Avenir Next", "Segoe UI", sans-serif;
     background-image: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  input,
+  textarea,
+  [contenteditable="true"],
+  .select-content,
+  [role="textbox"] {
+    -webkit-user-select: text;
+    user-select: text;
   }
 
   ::selection {

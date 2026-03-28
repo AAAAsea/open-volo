@@ -2,9 +2,35 @@
 
 All notable changes to Volo are recorded here.
 
-This project loosely follows Keep a Changelog and uses semantic version tags such as `v0.1.2`.
+This project loosely follows Keep a Changelog and uses semantic version tags such as `v0.2.0`.
 
 ## [Unreleased]
+
+## [0.2.0] - 2026-03-28
+
+### Added
+
+- Added **translate mode**: a second independent shortcut triggers ASR → AI translation → paste. Supports 8 target languages.
+- Added 4 translate prompt presets (standard, concise, formal, casual) with `{language}` placeholder.
+- Added mode tabs in Settings to configure input and translate independently (shortcut + prompt per mode).
+- Added mode tag (input / translate) to each history item for quick visual identification.
+- Added CSV export button to history module (UTF-8 BOM for Excel compatibility).
+- Added macOS title bar drag region for `hiddenInset` window style.
+- Added keyboard shortcut support for translate mode (hold-to-record and press-again).
+- Added translate shortcut to system tray context menu.
+- Added markdown rendering for release notes in the About tab (with DOMPurify sanitization).
+
+### Changed
+
+- **Home page**: now display-only — shows both input and translate shortcuts as status cards. Shortcut editing moved to Settings.
+- **Settings page**: restructured with mode tabs (语音输入 / 翻译) for per-mode config, plus shared settings below.
+- **AI service config** (Provider, API Key, Base URL, Model) is now a single shared section used by both modes.
+- Status hints now include a "翻译模式" prefix when recording in translate mode.
+- Window background changed to warm tone (#f4eee6) with macOS `hiddenInset` title bar.
+
+### Fixed
+
+- Fixed global text selection — body text is now non-selectable, only inputs/textareas remain selectable.
 
 ## [0.1.2] - 2026-03-26
 
