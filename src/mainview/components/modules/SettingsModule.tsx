@@ -17,8 +17,6 @@ import {
   ASR_PROVIDER_OPTIONS,
   getAsrProviderConfig,
   getAsrProviderPreset,
-  DOUBAO_ASR_MODEL_PRESETS,
-  getDoubaoModelPreset,
   type AsrProvider,
 } from "../../lib/asrProvider";
 import {
@@ -105,7 +103,6 @@ export function SettingsModule({
     Boolean(runtimeConfig.audioInputDeviceId) &&
     !audioInputDevices.some((device) => device.deviceId === runtimeConfig.audioInputDeviceId);
   const selectedAsrProvider = getAsrProviderPreset(runtimeConfig.asrProvider);
-  const selectedDoubaoModel = getDoubaoModelPreset(runtimeConfig.asrModel);
   const selectedTextRefineProvider = getTextRefineProviderPreset(runtimeConfig.textRefineProvider);
 
   const applyTextRefineProviderPreset = (provider: TextRefineProvider) => {
@@ -542,90 +539,65 @@ export function SettingsModule({
             </div>
           ) : (
             <div className="rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] px-4 py-3 text-xs leading-6 text-stone-500">
-              豆包 ASR 支持多个模型，通过接口地址区分。不同的 WS URL 对应不同的识别能力与定价。
+              豆包语音识别使用 Flash 模式（短语音一次性上传）。填写 APPID、Access Token、Secret Key 即可开始使用。
             </div>
           )}
 
           {selectedAsrProvider.id === "doubao" ? (
             <div className="space-y-4">
-              <label className="text-sm">
-                <span className="mb-1 block text-stone-500">模型</span>
-                <Select
-                  value={runtimeConfig.asrModel || "bigmodel_flash"}
-                  onValueChange={(value) => {
-                    const preset = getDoubaoModelPreset(value);
-                    onRuntimeConfigChange({
-                      asrModel: preset.id,
-                      asrWsUrl: preset.wsUrl,
-                      asrFlashUrl: preset.flashUrl,
-                      asrResourceId: preset.resourceId,
-                    });
-                  }}
-                >
-                  <SelectTrigger className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]">
-                    <SelectValue placeholder="选择模型" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DOUBAO_ASR_MODEL_PRESETS.map((preset) => (
-                      <SelectItem key={preset.id} value={preset.id}>
-                        <div>
-                          <div className="font-medium">{preset.label}</div>
-                          <div className="text-xs text-stone-500">{preset.description}</div>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </label>
-
-              {selectedDoubaoModel.id === "custom" && (
-                <label className="text-sm">
-                  <span className="mb-1 block text-stone-500">Flash URL</span>
-                  <Input
-                    type="text"
-                    value={runtimeConfig.asrFlashUrl}
-                    onChange={(e) => onRuntimeConfigChange({ asrFlashUrl: e.target.value })}
-                    placeholder="https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash"
-                    className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                  />
-                  <span className="mt-1 block text-xs leading-6 text-stone-500">
-                    当前仅支持 Flash 模式（一次性上传音频）。
-                  </span>
-                </label>
-              )}
-
               <div className="grid gap-4 xl:grid-cols-3">
                 <label className="text-sm">
                   <span className="mb-1 block text-stone-500">APPID</span>
-                <Input
-                  type="text"
-                  value={runtimeConfig.asrAppId}
-                  onChange={(e) => onRuntimeConfigChange({ asrAppId: e.target.value })}
-                  placeholder="输入豆包语音识别 APPID"
-                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                />
-              </label>
-              <label className="text-sm">
-                <span className="mb-1 block text-stone-500">Access Token</span>
-                <Input
-                  type="text"
-                  value={runtimeConfig.asrAccessToken}
-                  onChange={(e) => onRuntimeConfigChange({ asrAccessToken: e.target.value })}
-                  placeholder="输入 Access Token"
-                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                />
-              </label>
-              <label className="text-sm">
-                <span className="mb-1 block text-stone-500">Secret Key</span>
-                <Input
-                  type="text"
-                  value={runtimeConfig.asrAccessSecret}
-                  onChange={(e) => onRuntimeConfigChange({ asrAccessSecret: e.target.value })}
-                  placeholder="输入 Secret Key"
-                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                />
-              </label>
-            </div>
+                  <Input
+                    type="text"
+                    value={runtimeConfig.asrAppId}
+                    onChange={(e) => onRuntimeConfigChange({ asrAppId: e.target.value })}
+                    placeholder="输入 APPID"
+                    className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                  />
+                </label>
+                <label className="text-sm">
+                  <span className="mb-1 block text-stone-500">Access Token</span>
+                  <Input
+                    type="text"
+                    value={runtimeConfig.asrAccessToken}
+                    onChange={(e) => onRuntimeConfigChange({ asrAccessToken: e.target.value })}
+                    placeholder="输入 Access Token"
+                    className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                  />
+                </label>
+                <label className="text-sm">
+                  <span className="mb-1 block text-stone-500">Secret Key</span>
+                  <Input
+                    type="text"
+                    value={runtimeConfig.asrAccessSecret}
+                    onChange={(e) => onRuntimeConfigChange({ asrAccessSecret: e.target.value })}
+                    placeholder="输入 Secret Key"
+                    className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                  />
+                </label>
+              </div>
+
+              <details className="group">
+                <summary className="cursor-pointer text-xs text-stone-500 hover:text-stone-700">
+                  高级设置
+                </summary>
+                <div className="mt-3 space-y-4">
+                  <label className="text-sm">
+                    <span className="mb-1 block text-stone-500">Flash URL</span>
+                    <Input
+                      type="text"
+                      value={runtimeConfig.asrFlashUrl}
+                      onChange={(e) => onRuntimeConfigChange({ asrFlashUrl: e.target.value })}
+                      placeholder="https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash"
+                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                    />
+                    <span className="mt-1 block text-xs leading-6 text-stone-500">
+                      默认使用 bigmodel_flash 接口，如需更换可自定义。
+                    </span>
+                  </label>
+                </div>
+              </details>
             </div>
           ) : (
             <div className="grid gap-4 xl:grid-cols-3">

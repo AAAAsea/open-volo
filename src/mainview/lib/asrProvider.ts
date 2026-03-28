@@ -66,24 +66,16 @@ export const ASR_PROVIDER_OPTIONS = Object.values(ASR_PROVIDER_PRESETS);
 export const DOUBAO_ASR_MODEL_PRESETS: AsrModelPreset[] = [
   {
     id: "bigmodel_flash",
-    label: "bigmodel_flash（推荐）",
-    description: "短语音实时识别，响应快，适合语音输入场景",
+    label: "bigmodel_flash",
+    description: "短语音识别，适合语音输入场景",
     wsUrl: "",
     flashUrl: "https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash",
     resourceId: "volc.bigasr.auc_turbo",
   },
   {
-    id: "bigmodel_streaming",
-    label: "bigmodel 流式（暂不支持）",
-    description: "长语音流式识别，需要 WebSocket 支持",
-    wsUrl: "wss://openspeech.bytedance.com/api/v2/asr",
-    flashUrl: "",
-    resourceId: "volc.bigasr.auc_turbo",
-  },
-  {
     id: "custom",
-    label: "自定义接口地址",
-    description: "手动填写 Flash URL",
+    label: "自定义地址",
+    description: "使用自定义 Flash URL",
     wsUrl: "",
     flashUrl: "",
     resourceId: "",
