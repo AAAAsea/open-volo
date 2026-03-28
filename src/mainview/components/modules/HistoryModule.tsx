@@ -1,7 +1,42 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowUp, Check, Copy } from "lucide-react";
+import { ArrowUp, Check, Copy, Download } from "lucide-react";
 import type { VoiceHistoryItem } from "../../types";
 import { Button } from "@/components/ui/button";
+
+function exportHistoryAsCsv(items: VoiceHistoryItem[]) {
+  if (items.length === 0) return;
+
+  const header = ["时间", "时长(秒)", "模式", "AI润色", "原始文本", "润色后文本"];
+  const rows = items.map((item) => [
+    item.createdAt,
+    String(Math.round(item.durationMs / 1000)),
+    item.mode,
+    item.textRefineEnabled ? "是" : "否",
+    item.text || "",
+    item.processedText || "",
+  ]);
+
+  const escape = (field: string) => {
+    if (/[",\n\r]/.test(field)) {
+      return `"${field.replace(/"/g, '""')}"`;
+    }
+    return field;
+  };
+
+  const csv = [header, ...rows].map((row) => row.map(escape).join(",")).join("\r\n");
+  const bom = "\uFEFF";
+  const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const now = new Date();
+  const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  a.download = `volo-history-${dateStr}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 const INITIAL_RENDER_COUNT = 24;
 const LOAD_MORE_BATCH = 24;
@@ -352,14 +387,26 @@ export function HistoryModule({ history, onClearHistory }: HistoryModuleProps) {
           </h2>
           <p className="text-sm leading-7 text-stone-600">最近的转写结果。</p>
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onClearHistory}
-          className="rounded-md border-stone-200 bg-white/80 text-stone-700 hover:bg-stone-50 whitespace-nowrap"
-        >
-          清空历史
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => exportHistoryAsCsv(history)}
+            disabled={history.length === 0}
+            className="rounded-md border-stone-200 bg-white/80 text-stone-700 hover:bg-stone-50 whitespace-nowrap"
+          >
+            <Download className="mr-1.5 h-4 w-4" />
+            导出
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClearHistory}
+            className="rounded-md border-stone-200 bg-white/80 text-stone-700 hover:bg-stone-50 whitespace-nowrap"
+          >
+            清空历史
+          </Button>
+        </div>
       </div>
 
       {history.length === 0 ? (

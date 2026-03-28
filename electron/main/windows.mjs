@@ -30,6 +30,7 @@ export function createMainWindow({
   onClosed,
   onMove,
 }) {
+  const backgroundColor = '#f4eee6';
   const mainWindow = new BrowserWindow({
     width: 952,
     height: 602,
@@ -40,8 +41,8 @@ export function createMainWindow({
     minimizable: true,
     maximizable: true,
     fullscreenable: false,
-    backgroundColor: '#f3f4f6',
-    titleBarStyle: 'default',
+    backgroundColor,
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     autoHideMenuBar: process.platform !== 'darwin',
     skipTaskbar: process.platform !== 'darwin',
     minWidth: 920,

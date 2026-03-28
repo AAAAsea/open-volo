@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Switch } from "@/components/ui/switch";
+import { renderReleaseNotesToHtml } from "../../lib/releaseNotes";
 import { Textarea } from "@/components/ui/textarea";
 import type { RuntimeConfig, UpdateState } from "../../types";
 
@@ -57,6 +58,9 @@ export function AboutModule({
     unsupported: updateState.error || "当前环境暂不支持端内更新。",
   } satisfies Record<UpdateState["status"], string>;
   const hasReleaseNotes = Boolean(updateState.releaseNotes.trim());
+  const renderedReleaseNotes = hasReleaseNotes
+    ? renderReleaseNotesToHtml(updateState.releaseNotes)
+    : "";
 
   return (
     <section className="space-y-6">
@@ -164,11 +168,9 @@ export function AboutModule({
             {hasReleaseNotes ? (
               <div className="mt-4 space-y-2">
                 <div className="text-sm font-medium text-stone-950">发布说明</div>
-                <Textarea
-                  readOnly
-                  rows={6}
-                  value={updateState.releaseNotes}
-                  className="resize-none rounded-md border-stone-200 bg-[rgba(250,247,242,0.9)] text-xs leading-6 text-stone-700"
+                <div
+                  className="max-h-[280px] overflow-y-auto rounded-md border border-stone-200 bg-[rgba(250,247,242,0.9)] px-4 py-3 text-xs leading-6 text-stone-700 [&_a]:underline [&_a]:decoration-stone-300 [&_a]:underline-offset-4 [&_blockquote]:border-l-2 [&_blockquote]:border-stone-300 [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-[rgba(120,100,82,0.08)] [&_code]:px-1.5 [&_code]:py-0.5 [&_h1]:mb-2 [&_h1]:mt-3 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:mt-3 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:mt-3 [&_h3]:text-sm [&_h3]:font-semibold [&_li]:ml-4 [&_li]:list-disc [&_ol]:space-y-1 [&_p]:mb-3 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-[rgba(120,100,82,0.08)] [&_pre]:p-3 [&_ul]:space-y-1"
+                  dangerouslySetInnerHTML={{ __html: renderedReleaseNotes }}
                 />
               </div>
             ) : (

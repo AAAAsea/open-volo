@@ -1217,7 +1217,12 @@ export default function App() {
 
   return (
     <div className="h-screen overflow-hidden bg-[#f4eee6] text-stone-900">
-      <div className="mx-auto flex h-full max-w-[1420px] flex-col px-6 pb-6 pt-4">
+      <div className="mx-auto flex h-full max-w-[1420px] flex-col px-6 pb-6">
+        {/* macOS hiddenInset title bar drag region */}
+        <div
+          className="shrink-0"
+          style={{ height: 28, WebkitAppRegion: 'drag' } as React.CSSProperties}
+        />
 
         {showPermissionCenter ? (
           <PermissionCenter

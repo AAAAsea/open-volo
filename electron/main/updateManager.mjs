@@ -38,17 +38,18 @@ function cleanupReleaseText(text) {
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 
-  if (!normalized) return '';
-  if (/^Full Changelog:/i.test(normalized)) {
-    return '';
-  }
-
   return normalized;
 }
 
 function normalizeReleaseNotes(releaseNotes) {
   if (typeof releaseNotes === 'string') {
-    return cleanupReleaseText(releaseNotes);
+    const raw = releaseNotes.trim();
+    if (!raw) return '';
+    const cleaned = cleanupReleaseText(raw);
+    if (!cleaned || /^Full Changelog:/i.test(cleaned)) {
+      return '';
+    }
+    return raw;
   }
 
   if (Array.isArray(releaseNotes)) {
@@ -56,7 +57,12 @@ function normalizeReleaseNotes(releaseNotes) {
       .map((item) => {
         if (!item) return '';
         const version = item.version ? `v${item.version}` : '';
-        const note = typeof item.note === 'string' ? cleanupReleaseText(item.note) : '';
+        const rawNote = typeof item.note === 'string' ? item.note.trim() : '';
+        const cleaned = rawNote ? cleanupReleaseText(rawNote) : '';
+        if (!cleaned || /^Full Changelog:/i.test(cleaned)) {
+          return '';
+        }
+        const note = rawNote;
         return [version, note].filter(Boolean).join('\n');
       })
       .filter(Boolean)
@@ -232,6 +238,27 @@ export function createUpdateManager({ app, send }) {
       return { ok: false, error: '更新尚未下载完成。', state: getState() };
     }
 
+    const inApplicationsFolder =
+      process.platform !== 'darwin' ||
+      typeof app.isInApplicationsFolder !== 'function' ||
+      app.isInApplicationsFolder();
+
+    if (!inApplicationsFolder) {
+      const message = 'macOS 自动更新要求应用位于 Applications 文件夹，请先移动应用后再安装更新。';
+      const nextState = setState({
+        status: 'error',
+        error: message,
+      });
+      return { ok: false, error: message, state: nextState };
+    }
+
+    console.log('[Volo] installUpdate requested', {
+      currentVersion: app.getVersion(),
+      downloaded: state.downloaded,
+      latestVersion: state.latestVersion,
+      inApplicationsFolder,
+    });
+
     setState({
       status: 'installing',
       downloading: false,
@@ -240,6 +267,7 @@ export function createUpdateManager({ app, send }) {
     });
 
     setTimeout(() => {
+      console.log('[Volo] calling autoUpdater.quitAndInstall()');
       autoUpdater.quitAndInstall(false, true);
     }, 100);
 
@@ -311,6 +339,10 @@ export function createUpdateManager({ app, send }) {
     });
 
     autoUpdater.on('update-downloaded', (info) => {
+      console.log('[Volo] Auto update downloaded:', {
+        version: info?.version,
+        files: Array.isArray(info?.files) ? info.files.map((file) => file.url || file.info?.url).filter(Boolean) : [],
+      });
       setState({
         status: 'downloaded',
         checking: false,
@@ -335,6 +367,10 @@ export function createUpdateManager({ app, send }) {
         lastCheckedAt: new Date().toISOString(),
         error: message,
       });
+    });
+
+    autoUpdater.on('before-quit-for-update', () => {
+      console.log('[Volo] before-quit-for-update fired');
     });
 
     broadcastState();
