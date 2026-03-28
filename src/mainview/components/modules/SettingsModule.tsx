@@ -172,6 +172,12 @@ export function SettingsModule({
         <p className="max-w-[36ch] text-sm leading-7 text-stone-600">调整快捷键与识别服务。</p>
       </div>
 
+      {/* ── Mode-Specific Settings ── */}
+      <div className="space-y-1">
+        <h3 className="text-lg font-medium text-stone-950">模式配置</h3>
+        <p className="text-xs leading-6 text-stone-500">每个模式有独立的快捷键和提示词。</p>
+      </div>
+
       {/* Mode Tabs */}
       <div className="flex gap-2 border-b border-stone-200">
         {(["input", "translate"] as const).map((tab) => (
@@ -398,7 +404,12 @@ export function SettingsModule({
         </div>
       )}
 
-      {/* Shared Settings */}
+      {/* ── Shared Settings ── */}
+      <div className="space-y-1">
+        <h3 className="text-lg font-medium text-stone-950">通用设置</h3>
+        <p className="text-xs leading-6 text-stone-500">以下配置对语音输入和翻译模式同时生效。</p>
+      </div>
+
       <Card className="rounded-[18px] border-stone-200 bg-[rgba(246,243,238,0.56)] shadow-none">
         <CardHeader>
           <CardTitle className="text-lg text-stone-950">录音结束方式</CardTitle>
