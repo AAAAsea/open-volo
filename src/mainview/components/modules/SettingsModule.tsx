@@ -579,28 +579,19 @@ export function SettingsModule({
               </label>
 
               {selectedDoubaoModel.id === "custom" && (
-                <div className="grid gap-4 xl:grid-cols-2">
-                  <label className="text-sm">
-                    <span className="mb-1 block text-stone-500">WS URL</span>
-                    <Input
-                      type="text"
-                      value={runtimeConfig.asrWsUrl}
-                      onChange={(e) => onRuntimeConfigChange({ asrWsUrl: e.target.value })}
-                      placeholder="wss://openspeech.bytedance.com/api/v2/asr"
-                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                    />
-                  </label>
-                  <label className="text-sm">
-                    <span className="mb-1 block text-stone-500">Flash URL</span>
-                    <Input
-                      type="text"
-                      value={runtimeConfig.asrFlashUrl}
-                      onChange={(e) => onRuntimeConfigChange({ asrFlashUrl: e.target.value })}
-                      placeholder="https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash"
-                      className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-                    />
-                  </label>
-                </div>
+                <label className="text-sm">
+                  <span className="mb-1 block text-stone-500">Flash URL</span>
+                  <Input
+                    type="text"
+                    value={runtimeConfig.asrFlashUrl}
+                    onChange={(e) => onRuntimeConfigChange({ asrFlashUrl: e.target.value })}
+                    placeholder="https://openspeech.bytedance.com/api/v3/auc/bigmodel/recognize/flash"
+                    className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                  />
+                  <span className="mt-1 block text-xs leading-6 text-stone-500">
+                    当前仅支持 Flash 模式（一次性上传音频）。
+                  </span>
+                </label>
               )}
 
               <div className="grid gap-4 xl:grid-cols-3">
