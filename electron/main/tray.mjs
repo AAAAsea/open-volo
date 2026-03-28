@@ -26,7 +26,7 @@ function createTrayIcon() {
   return sizedIcon;
 }
 
-export function createTray({ app, getMainWindow, onTriggerShortcut }) {
+export function createTray({ app, getMainWindow, onTriggerShortcut, onTriggerTranslateShortcut }) {
   if (process.platform !== 'darwin' && process.platform !== 'win32') return null;
 
   const tray = new Tray(createTrayIcon());
@@ -73,6 +73,14 @@ export function createTray({ app, getMainWindow, onTriggerShortcut }) {
         label: '触发语音输入',
         click: () => void onTriggerShortcut(),
       },
+      ...(onTriggerTranslateShortcut
+        ? [
+            {
+              label: '触发翻译',
+              click: () => void onTriggerTranslateShortcut(),
+            },
+          ]
+        : []),
       { type: 'separator' },
       { label: '退出', click: () => app.quit() },
     ]);

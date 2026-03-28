@@ -7,6 +7,7 @@ import {
   SHORTCUT_STORAGE_KEY,
   WAVEFORM_BARS,
   getDefaultShortcut,
+  DEFAULT_TRANSLATE_SHORTCUT,
 } from "./constants";
 import { AppSidebar } from "./components/AppSidebar";
 import { PermissionCenter } from "./components/PermissionCenter";
@@ -79,19 +80,6 @@ function createHistoryId() {
   return `hist-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function getShortcutBehaviorCopy(
-  shortcut: ShortcutConfig,
-  shortcutFinishMode: ShortcutFinishMode,
-) {
-  if (shortcutFinishMode === "press-again") {
-    return "按一次快捷键开始说话，再按一次结束后自动回填。";
-  }
-  if (shortcut.kind === "fn") {
-    return "按住快捷键开始说话，松开后自动回填。";
-  }
-  return "按住快捷键开始说话，松开优先结束；若在应用外未识别到松开，也可再次按下结束。";
-}
-
 function createDefaultUpdateState(): UpdateState {
   return {
     supported: false,
@@ -161,6 +149,11 @@ export default function App() {
     textRefineBaseUrl: activeTextRefineConfig.baseUrl,
     textRefineModel: activeTextRefineConfig.model,
     textRefinePrompt: DEFAULT_TEXT_REFINE_PROMPT,
+    translateEnabled: false,
+    translateShortcutAccelerator: DEFAULT_TRANSLATE_SHORTCUT(platform).accelerator,
+    translateShortcutDisplay: DEFAULT_TRANSLATE_SHORTCUT(platform).display,
+    translateTargetLanguage: "English",
+    translatePrompt: "",
   });
   const [section, setSection] = useState<AppSection>("home");
   const [shortcut, setShortcut] = useState<ShortcutConfig>(initialShortcut);
@@ -195,8 +188,14 @@ export default function App() {
   const [debugLogLines, setDebugLogLines] = useState<string[]>([]);
   const [debugLogPath, setDebugLogPath] = useState("");
   const [updateState, setUpdateState] = useState<UpdateState>(createDefaultUpdateState());
+  const [translateShortcut, setTranslateShortcut] = useState<ShortcutConfig>(DEFAULT_TRANSLATE_SHORTCUT(platform));
+  const [captureTranslateShortcutMode, setCaptureTranslateShortcutMode] = useState(false);
+  const [translateShortcutRegistrationState, setTranslateShortcutRegistrationState] = useState<
+    "idle" | "success" | "error"
+  >("idle");
 
   const holdingRef = useRef(false);
+  const translateHoldingRef = useRef(false);
   const modeRef = useRef(mode);
   const runtimeConfigRef = useRef(runtimeConfig);
   const recorderRef = useRef<RecorderState | null>(null);
@@ -351,7 +350,22 @@ export default function App() {
 
     void window.volo.getRuntimeConfig().then((res) => {
       if (!res?.ok || !res.config) return;
-      setRuntimeConfig((prev) => ({ ...prev, ...(res.config as Partial<RuntimeConfig>) }));
+      const config = res.config as Partial<RuntimeConfig>;
+      setRuntimeConfig((prev) => ({ ...prev, ...config }));
+      if (config.translateEnabled !== undefined || config.translateShortcutAccelerator !== undefined) {
+        const ts = config.translateShortcutAccelerator || prev.translateShortcutAccelerator;
+        const td = config.translateShortcutDisplay || prev.translateShortcutDisplay;
+        setTranslateShortcut({
+          accelerator: ts,
+          display: td,
+          key: ts.split('+').pop() || 't',
+          ctrl: ts.includes('Control'),
+          meta: ts.includes('Command'),
+          alt: ts.includes('Alt'),
+          shift: ts.includes('Shift'),
+          kind: 'standard',
+        });
+      }
     });
     void window.volo.getDebugState().then((res) => {
       if (!res?.ok) return;
@@ -620,6 +634,16 @@ export default function App() {
       setUpdateState(payload);
     });
 
+    const offTranslateShortcutApplied = window.volo.onTranslateShortcutApplied?.(({ ok, error }) => {
+      if (ok) {
+        setTranslateShortcutRegistrationState("success");
+        scheduleShortcutRegistrationReset();
+        return;
+      }
+      setTranslateShortcutRegistrationState("error");
+      scheduleShortcutRegistrationReset();
+    });
+
     return () => {
       offStatus();
       offAudio();
@@ -633,6 +657,7 @@ export default function App() {
       offDebugLogsCleared();
       offUpdateState();
       offPermissions();
+      offTranslateShortcutApplied?.();
       holdingRef.current = false;
     };
   }, [captureShortcutMode, showPermissionCenter]);
@@ -969,6 +994,44 @@ export default function App() {
       }
     };
 
+    // Translate shortcut key handling
+    const onTranslateKeyDown = (e: KeyboardEvent) => {
+      if (captureTranslateShortcutMode) {
+        e.preventDefault();
+        e.stopPropagation();
+
+        if (e.key === "Escape") {
+          setCaptureTranslateShortcutMode(false);
+          return;
+        }
+
+        if (isModifierOnlyEvent(e)) return;
+
+        const next = toDisplayShortcut(e);
+        if (!next) return;
+
+        setTranslateShortcut(next);
+        setRuntimeConfig({
+          translateShortcutAccelerator: next.accelerator,
+          translateShortcutDisplay: next.display,
+        });
+        setCaptureTranslateShortcutMode(false);
+        return;
+      }
+    };
+
+    const onTranslateKeyUp = (e: KeyboardEvent) => {
+      if (!translateHoldingRef.current) return;
+      if (!shouldReleaseOnKeyUp(e, translateShortcut)) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+      translateHoldingRef.current = false;
+      if (runtimeConfig.shortcutFinishMode === "release") {
+        void window.volo.endTranslateHold({ source: "window-hotkey" });
+      }
+    };
+
     const onKeyUp = (e: KeyboardEvent) => {
       if (!holdingRef.current) return;
       if (!shouldReleaseOnKeyUp(e, shortcut)) return;
@@ -983,24 +1046,35 @@ export default function App() {
     };
 
     const onBlur = () => {
-      if (!holdingRef.current) return;
-      holdingRef.current = false;
-      setShortcutPressed(false);
-      if (runtimeConfig.shortcutFinishMode === "release") {
-        void window.volo.endShortcutHold({ source: "window-hotkey" });
+      if (holdingRef.current) {
+        holdingRef.current = false;
+        setShortcutPressed(false);
+        if (runtimeConfig.shortcutFinishMode === "release") {
+          void window.volo.endShortcutHold({ source: "window-hotkey" });
+        }
+      }
+      if (translateHoldingRef.current) {
+        translateHoldingRef.current = false;
+        if (runtimeConfig.shortcutFinishMode === "release") {
+          void window.volo.endTranslateHold({ source: "window-hotkey" });
+        }
       }
     };
 
     window.addEventListener("keydown", onKeyDown, true);
     window.addEventListener("keyup", onKeyUp, true);
+    window.addEventListener("keydown", onTranslateKeyDown, true);
+    window.addEventListener("keyup", onTranslateKeyUp, true);
     window.addEventListener("blur", onBlur);
 
     return () => {
       window.removeEventListener("keydown", onKeyDown, true);
       window.removeEventListener("keyup", onKeyUp, true);
+      window.removeEventListener("keydown", onTranslateKeyDown, true);
+      window.removeEventListener("keyup", onTranslateKeyUp, true);
       window.removeEventListener("blur", onBlur);
     };
-  }, [captureShortcutMode, runtimeConfig.shortcutFinishMode, section, shortcut, stage]);
+  }, [captureShortcutMode, captureTranslateShortcutMode, runtimeConfig.shortcutFinishMode, section, shortcut, translateShortcut, stage]);
 
   const updateRuntimeConfig = (patch: Partial<RuntimeConfig>) => {
     setRuntimeConfig((prev) => {
@@ -1255,16 +1329,11 @@ export default function App() {
                 {section === "home" && (
                   <HomeModule
                     shortcut={shortcut}
-                    platform={platform}
                     shortcutFinishMode={runtimeConfig.shortcutFinishMode}
-                    shortcutBehaviorCopy={getShortcutBehaviorCopy(shortcut, runtimeConfig.shortcutFinishMode)}
                     stats={stats}
-                    shortcutFeedback={shortcutFeedback}
-                    captureShortcutMode={captureShortcutMode}
-                    stage={stage}
-                    isShortcutActive={isShortcutActive}
-                    registrationState={shortcutRegistrationState}
-                    onCaptureShortcut={toggleCaptureShortcutMode}
+                    translateEnabled={runtimeConfig.translateEnabled}
+                    translateShortcut={translateShortcut}
+                    translateTargetLanguage={runtimeConfig.translateTargetLanguage}
                   />
                 )}
 
@@ -1298,7 +1367,13 @@ export default function App() {
                     stage={stage}
                     isShortcutActive={isShortcutActive}
                     registrationState={shortcutRegistrationState}
+                    translateShortcut={translateShortcut}
+                    captureTranslateShortcutMode={captureTranslateShortcutMode}
+                    translateShortcutRegistrationState={translateShortcutRegistrationState}
                     onCaptureShortcut={toggleCaptureShortcutMode}
+                    onCaptureTranslateShortcut={() => {
+                      setCaptureTranslateShortcutMode((prev) => !prev);
+                    }}
                     onRuntimeConfigChange={updateRuntimeConfig}
                     onRefreshAudioInputDevices={() => {
                       void refreshAudioInputDevices();

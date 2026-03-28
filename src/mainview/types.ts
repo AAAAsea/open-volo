@@ -115,6 +115,11 @@ export type RuntimeConfig = {
   textRefineBaseUrl: string;
   textRefineModel: string;
   textRefinePrompt: string;
+  translateEnabled: boolean;
+  translateShortcutAccelerator: string;
+  translateShortcutDisplay: string;
+  translateTargetLanguage: string;
+  translatePrompt: string;
 };
 
 export type DebugState = {

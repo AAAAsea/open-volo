@@ -220,6 +220,7 @@ const bubbleSizes = {
 let mainWindow = null;
 let tray = null;
 let shortcut = { ...defaultShortcut };
+let translateShortcut = null;
 let cancelShortcutRegistered = false;
 let cancelShortcutKey = '';
 let isQuitting = false;
@@ -281,6 +282,7 @@ function initTray() {
     app,
     getMainWindow: () => mainWindow,
     onTriggerShortcut: handleGlobalShortcut,
+    onTriggerTranslateShortcut: handleGlobalTranslateShortcut,
   });
 }
 
@@ -318,17 +320,20 @@ function notifyInputUnavailable(message = '未检测到可输入的光标，请�
 function sendStatus() {
   const usesFnShortcut = isFnShortcut(shortcut);
   const shortcutFinishMode = runtimeConfigStore.getConfig().shortcutFinishMode;
+  const activeMode = recording.getActiveMode();
+  const isTranslate = activeMode === 'translate';
+  const modePrefix = isTranslate ? '翻译模式 · ' : '';
   const hintByStage = {
     idle: shortcutFinishMode === 'release' ? '按住快捷键开始录音' : '按一次快捷键开始录音',
-    arming: '正在准备麦克风，准备好后再开始说话',
+    arming: modePrefix + '正在准备麦克风，准备好后再开始说话',
     recording:
       shortcutFinishMode === 'release'
         ? usesFnShortcut
-          ? '松开快捷键结束录音'
-          : '松开快捷键结束录音，必要时可再按一次'
-        : '再次按下快捷键结束录音',
-    transcribing: '正在调用 ASR 服务',
-    refining: '正在润色文本',
+          ? modePrefix + '松开快捷键结束录音'
+          : modePrefix + '松开快捷键结束录音，必要时可再按一次'
+        : modePrefix + '再次按下快捷键结束录音',
+    transcribing: modePrefix + '正在调用 ASR 服务',
+    refining: isTranslate ? '翻译模式 · 正在翻译文本' : '正在润色文本',
   };
   const stage = recording.getStage();
   send('voice:status', { stage, hint: hintByStage[stage] });
@@ -356,8 +361,8 @@ async function captureTargetAppSnapshot() {
   }
 }
 
-function beginRecording(source) {
-  const started = recording.startRecording(source);
+function beginRecording(source, mode = 'input') {
+  const started = recording.startRecording(source, mode);
   if (started) {
     clearTargetAppSnapshot();
     void captureTargetAppSnapshot();
@@ -562,6 +567,10 @@ async function registerGlobalShortcut(nextShortcut) {
     console.log('[Volo] Global shortcuts registered:', {
       trigger: nextShortcut.accelerator,
     });
+
+    // Re-register translate shortcut since unregisterAll was called
+    reRegisterTranslateShortcut();
+
     return { ok: true };
   } catch (error) {
     return {
@@ -694,6 +703,75 @@ async function syncFnShortcutMonitor() {
   }
 }
 
+function loadTranslateShortcutFromConfig() {
+  const config = runtimeConfigStore.getConfig();
+  if (!config.translateEnabled || !config.translateShortcutAccelerator) {
+    translateShortcut = null;
+    return;
+  }
+  translateShortcut = {
+    accelerator: config.translateShortcutAccelerator,
+    display: config.translateShortcutDisplay,
+    kind: 'standard',
+  };
+}
+
+function reRegisterTranslateShortcut() {
+  // First unregister any existing translate shortcut
+  if (translateShortcut && !isFnShortcut(translateShortcut)) {
+    try {
+      globalShortcut.unregister(translateShortcut.accelerator);
+    } catch {
+      // ignore
+    }
+  }
+  translateShortcut = null;
+
+  const config = runtimeConfigStore.getConfig();
+  if (!config.translateEnabled || !config.translateShortcutAccelerator) return;
+
+  translateShortcut = {
+    accelerator: config.translateShortcutAccelerator,
+    display: config.translateShortcutDisplay,
+    kind: 'standard',
+  };
+
+  if (isFnShortcut(translateShortcut)) return;
+
+  const ok = globalShortcut.register(translateShortcut.accelerator, () => {
+    void handleGlobalTranslateShortcut();
+  });
+  if (!ok) {
+    console.warn('[Volo] Translate shortcut register failed:', translateShortcut.accelerator);
+    sendTranslateShortcutApplied(false, '全局快捷键注册失败，可能与系统快捷键冲突。');
+    translateShortcut = null;
+  }
+}
+
+function sendTranslateShortcutApplied(ok, error) {
+  send('voice:translate-shortcut-applied', {
+    accelerator: translateShortcut?.accelerator || '',
+    display: translateShortcut?.display || '',
+    ok,
+    error,
+  });
+}
+
+async function handleGlobalTranslateShortcut() {
+  if (shortcutCaptureActive) return;
+  const stage = recording.getStage();
+  if (stage === 'idle') {
+    if (!ensureReadyForRecording()) return;
+    beginRecording('translate-shortcut', 'translate');
+    return;
+  }
+  if (stage === 'recording') {
+    stopRecording('translate-shortcut');
+  } else if (stage === 'arming') {
+    cancelRecording('translate-shortcut-arming');
+  }
+}
+
 app.whenReady().then(async () => {
   console.log('[Volo] ENV', { PATH: process.env.PATH, LANG: process.env.LANG, LC_ALL: process.env.LC_ALL });
   getDebugLogPath();
@@ -731,6 +809,9 @@ app.whenReady().then(async () => {
     setShortcutPreviewMode: (nextActive) => {
       shortcutPreviewMode = Boolean(nextActive);
     },
+    reRegisterTranslateShortcut,
+    sendTranslateShortcutApplied,
+    handleGlobalTranslateShortcut,
     handleGlobalShortcut,
     beginRecording,
     stopRecording,
@@ -759,6 +840,9 @@ app.whenReady().then(async () => {
   const storedShortcut = await loadStoredShortcut(app);
   const result = await registerGlobalShortcut(storedShortcut ?? defaultShortcut);
   sendShortcutApplied(result.ok, result.error);
+
+  loadTranslateShortcutFromConfig();
+  reRegisterTranslateShortcut();
 
   mainWindow?.webContents.on('did-finish-load', () => {
     sendStatus();

@@ -9,6 +9,7 @@ export function createRecordingController({
   maxTranscribingMs = 15000,
 }) {
   let stage = 'idle';
+  let activeMode = 'input';
   let recordingStartedAt = 0;
   let pendingSessionId = null;
   let pendingDurationMs = 0;
@@ -18,6 +19,7 @@ export function createRecordingController({
   let activeTranscriptionToken = 0;
 
   const getStage = () => stage;
+  const getActiveMode = () => activeMode;
 
   const clearTranscribingState = () => {
     clearTimeout(transcribingTimer);
@@ -43,9 +45,10 @@ export function createRecordingController({
     return true;
   };
 
-  const startRecording = (source) => {
+  const startRecording = (source, mode = 'input') => {
     if (stage !== 'idle') return false;
 
+    activeMode = mode;
     stage = 'arming';
     bubble.setProgress(0);
     bubble.hideResult();
@@ -108,6 +111,7 @@ export function createRecordingController({
     clearTimeout(autoStopTimer);
     clearTranscribingState();
     stage = 'idle';
+    activeMode = 'input';
     sendStatus();
     bubble.hideWithFade();
     console.log('[Volo] Recording cancelled:', source);
@@ -117,6 +121,7 @@ export function createRecordingController({
   const setIdleAfterTranscription = (showedResultBubble) => {
     clearTranscribingState();
     stage = 'idle';
+    activeMode = 'input';
     sendStatus();
     if (!showedResultBubble) {
       bubble.hideWithFade();
@@ -207,6 +212,7 @@ export function createRecordingController({
     clearPendingSession,
     isTranscriptionActive,
     setProcessingStage,
+    getActiveMode,
     destroy,
   };
 }

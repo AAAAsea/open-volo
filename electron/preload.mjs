@@ -3,10 +3,12 @@ import { contextBridge, ipcRenderer } from 'electron';
 contextBridge.exposeInMainWorld('volo', {
   platform: process.platform,
   setShortcut: (payload) => ipcRenderer.invoke('voice:set-shortcut', payload),
+  setTranslateShortcut: (payload) => ipcRenderer.invoke('voice:set-translate-shortcut', payload),
   beginShortcutCapture: () => ipcRenderer.invoke('voice:begin-shortcut-capture'),
   endShortcutCapture: () => ipcRenderer.invoke('voice:end-shortcut-capture'),
   startShortcutHold: (payload) => ipcRenderer.invoke('voice:start-shortcut-hold', payload),
   endShortcutHold: (payload) => ipcRenderer.invoke('voice:end-shortcut-hold', payload),
+  endTranslateHold: (payload) => ipcRenderer.invoke('voice:end-translate-hold', payload),
   cancelRecording: (payload) => ipcRenderer.invoke('voice:cancel-recording', payload),
   getRuntimeConfig: () => ipcRenderer.invoke('voice:get-runtime-config'),
   getDebugState: () => ipcRenderer.invoke('voice:get-debug-state'),
@@ -70,6 +72,11 @@ contextBridge.exposeInMainWorld('volo', {
     const listener = (_event, payload) => handler(payload);
     ipcRenderer.on('voice:shortcut-preview', listener);
     return () => ipcRenderer.removeListener('voice:shortcut-preview', listener);
+  },
+  onTranslateShortcutApplied: (handler) => {
+    const listener = (_event, payload) => handler(payload);
+    ipcRenderer.on('voice:translate-shortcut-applied', listener);
+    return () => ipcRenderer.removeListener('voice:translate-shortcut-applied', listener);
   },
   onDebugLogEntry: (handler) => {
     const listener = (_event, payload) => handler(payload);

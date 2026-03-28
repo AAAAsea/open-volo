@@ -7,10 +7,12 @@ declare global {
       isMock?: boolean;
       platform: string;
       setShortcut(payload: ShortcutPayload): Promise<{ ok: boolean; error?: string }>;
+      setTranslateShortcut(payload: ShortcutPayload): Promise<{ ok: boolean; error?: string }>;
       beginShortcutCapture(): Promise<{ ok: boolean }>;
       endShortcutCapture(): Promise<{ ok: boolean }>;
       startShortcutHold(payload: { source: "window-hotkey" | "button" }): Promise<{ ok: boolean }>;
       endShortcutHold(payload: { source: "window-hotkey" | "button" }): Promise<{ ok: boolean }>;
+      endTranslateHold(payload: { source: "window-hotkey" | "button" }): Promise<{ ok: boolean }>;
       cancelRecording(payload: { source: "escape" | "button" }): Promise<{ ok: boolean }>;
       getRuntimeConfig(): Promise<{
         ok: boolean;
@@ -111,6 +113,14 @@ declare global {
       onShortcutPreview(
         handler: (payload: {
           display: string;
+        }) => void,
+      ): () => void;
+      onTranslateShortcutApplied(
+        handler: (payload: {
+          accelerator: string;
+          display: string;
+          ok: boolean;
+          error?: string;
         }) => void,
       ): () => void;
       onDebugLogEntry(handler: (payload: { line: string }) => void): () => void;

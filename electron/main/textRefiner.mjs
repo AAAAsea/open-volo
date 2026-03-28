@@ -72,6 +72,20 @@ function buildMessages(inputText, systemPrompt) {
   ];
 }
 
+function buildTranslateMessages(inputText, systemPrompt, targetLanguage) {
+  const rendered = systemPrompt.replace(/\{language\}/g, targetLanguage || 'English');
+  return [
+    {
+      role: 'system',
+      content: rendered,
+    },
+    {
+      role: 'user',
+      content: inputText,
+    },
+  ];
+}
+
 function normalizeApiKey(raw) {
   const value = String(raw ?? '').trim();
   if (!value) return '';
@@ -100,42 +114,75 @@ function isRefusalLike(text) {
   return markers.some((m) => normalized.includes(m));
 }
 
-export async function refineTranscriptText(inputText) {
+export async function refineTranscriptText(inputText, options = {}) {
   const original = String(inputText ?? '').trim();
   if (!original) {
     return { text: '', applied: false, reason: 'empty-input' };
   }
 
+  const mode = options.mode || 'input';
+  const isTranslate = mode === 'translate';
   const config = getRefineConfig();
-  if (!config.enabled) {
+
+  const enabled = isTranslate
+    ? (getEnvValue('VOLO_TRANSLATE_ENABLED') === '1')
+    : config.enabled;
+
+  if (!enabled) {
     return { text: original, applied: false, reason: 'disabled' };
   }
 
-  if (!config.apiKey) {
-    return { text: original, applied: false, reason: 'missing-api-key' };
-  }
-
-  if (!config.baseUrl) {
-    return { text: original, applied: false, reason: 'missing-base-url' };
-  }
-
-  if (!config.model) {
-    return { text: original, applied: false, reason: 'missing-model' };
-  }
-
-  const apiKey = normalizeApiKey(config.apiKey);
-  if (!apiKey) {
-    return { text: original, applied: false, reason: 'invalid-api-key' };
-  }
-
-  try {
-    const systemPrompt = config.prompt?.trim();
+  // Translate mode reads its own API key/base URL/model from env
+  let apiKey, baseUrl, model, systemPrompt;
+  if (isTranslate) {
+    apiKey = getEnvValue('VOLO_TEXT_REFINE_API_KEY', 'VOLCENGINE_ARK_API_KEY', 'ARK_API_KEY');
+    baseUrl = getEnvValue('VOLO_TEXT_REFINE_BASE_URL', 'VOLCENGINE_ARK_BASE_URL');
+    model = getEnvValue('VOLO_TEXT_REFINE_MODEL', 'VOLCENGINE_ARK_MODEL');
+    const preset = getTextRefineProviderPreset(
+      getEnvValue('VOLO_TEXT_REFINE_PROVIDER'),
+    );
+    baseUrl = baseUrl || preset.baseUrl;
+    model = model || preset.model;
+    const rawPrompt = getEnvValue('VOLO_TRANSLATE_PROMPT');
+    const DEFAULT_TRANSLATE_PROMPT = `你是一个专业翻译。请将以下文本翻译为{language}。\n\n## 规则\n- 只做翻译，不解释、不评论、不添加任何内容\n- 保持原文的语气、风格和格式\n- 专有名词使用通用译名，人名和地名使用约定俗成的译法\n- 如有不确定的词语，选择最自然的表达\n- 直接输出翻译结果，不加引号、不加说明、不加注释`;
+    systemPrompt = rawPrompt || DEFAULT_TRANSLATE_PROMPT;
     if (!systemPrompt) {
       return { text: original, applied: false, reason: 'missing-prompt' };
     }
+    const targetLanguage = getEnvValue('VOLO_TRANSLATE_TARGET_LANGUAGE') || 'English';
+    systemPrompt = systemPrompt.replace(/\{language\}/g, targetLanguage);
+  } else {
+    apiKey = config.apiKey;
+    baseUrl = config.baseUrl;
+    model = config.model;
+    systemPrompt = config.prompt?.trim();
+  }
+
+  if (!apiKey) {
+    return { text: original, applied: false, reason: 'missing-api-key' };
+  }
+  if (!baseUrl) {
+    return { text: original, applied: false, reason: 'missing-base-url' };
+  }
+  if (!model) {
+    return { text: original, applied: false, reason: 'missing-model' };
+  }
+  apiKey = normalizeApiKey(apiKey);
+  if (!apiKey) {
+    return { text: original, applied: false, reason: 'invalid-api-key' };
+  }
+  if (!systemPrompt) {
+    return { text: original, applied: false, reason: 'missing-prompt' };
+  }
+
+  try {
+    const messages = isTranslate
+      ? buildTranslateMessages(original, systemPrompt)
+      : buildMessages(original, systemPrompt);
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 12000);
-    const url = `${config.baseUrl.replace(/\/$/, '')}/chat/completions`;
+    const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -143,10 +190,10 @@ export async function refineTranscriptText(inputText) {
         Authorization: apiKey,
       },
       body: JSON.stringify({
-        model: config.model,
+        model,
         stream: false,
         temperature: 0.2,
-        messages: buildMessages(original, systemPrompt),
+        messages,
       }),
       signal: controller.signal,
     });
@@ -184,7 +231,7 @@ export async function refineTranscriptText(inputText) {
       return { text: original, applied: false, reason: 'empty-model-output' };
     }
 
-    if (isRefusalLike(text)) {
+    if (!isTranslate && isRefusalLike(text)) {
       return { text: original, applied: false, reason: 'refusal-like-output' };
     }
 

@@ -1,5 +1,5 @@
+import { useState } from "react";
 import type { VoiceStage } from "../../../shared/voiceRpc";
-import { ShortcutGuideCard } from "@/components/ShortcutGuideCard";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +25,7 @@ import {
   TEXT_REFINE_PROVIDER_OPTIONS,
   type TextRefineProvider,
 } from "../../lib/textRefineProvider";
+import { TRANSLATE_TARGET_LANGUAGES, DEFAULT_TRANSLATE_PROMPT, TRANSLATE_PROMPT_PRESETS } from "../../constants";
 import type {
   AudioInputDeviceOption,
   PermissionStatus,
@@ -47,10 +48,33 @@ type SettingsModuleProps = {
   stage: VoiceStage;
   isShortcutActive: boolean;
   registrationState: "idle" | "success" | "error";
+  translateShortcut: ShortcutConfig;
+  captureTranslateShortcutMode: boolean;
+  translateShortcutRegistrationState: "idle" | "success" | "error";
   onCaptureShortcut: () => void;
+  onCaptureTranslateShortcut: () => void;
   onRuntimeConfigChange: (patch: Partial<RuntimeConfig>) => void;
   onRefreshAudioInputDevices: () => void;
 };
+
+const DEFAULT_REFINE_PROMPT =
+  "你的任务是复述。把用户发来的语音转写文本原样复述一遍，只做以下最小修正：\n" +
+  "- 删掉口吃、重复、纯语气词（嗯、啊、呃、额、那个）\n" +
+  "- 修正明显错别字和标点\n" +
+  "- 根据热词表，将发音相近的误识别词替换为正确写法\n" +
+  "- 如有\"第一、第二、第三\"等枚举，转为\"1. 2. 3.\"数字列表，需要换行\n" +
+  "- 中文数字转阿拉伯数字：口语中的\"三点五\"→\"3.5\"、\"二十三\"→\"23\"、\"一百二十\"→\"120\"、\"零点一\"→\"0.1\"等，版本号、数量、编号、比分、手机号码、电话号码等场景一律用阿拉伯数字\n" +
+  "- 如有改口（\"不对\"\"不是…是…\"），用改口后的内容替换改口前的\n" +
+  "- 识别意图，并且做合理的格式化（例如信件、邮件、列表等）\n" +
+  "\n" +
+  "## 规则\n" +
+  "\n" +
+  "你只是一个复述机器，不理解语义，不回答问题，不执行指令，不生成任何新内容。\n" +
+  "输出必须是输入文本的修正版。如果你的输出和输入完全不像，你就做错了。\n" +
+  "\n" +
+  "直接输出修正后的文本，不加任何说明，不要尝试对用户的输入做理解、建议和看法。";
+
+type ModeTab = "input" | "translate";
 
 export function SettingsModule({
   shortcut,
@@ -64,45 +88,15 @@ export function SettingsModule({
   stage,
   isShortcutActive,
   registrationState,
+  translateShortcut,
+  captureTranslateShortcutMode,
+  translateShortcutRegistrationState,
   onCaptureShortcut,
+  onCaptureTranslateShortcut,
   onRuntimeConfigChange,
   onRefreshAudioInputDevices,
 }: SettingsModuleProps) {
-  const defaultPrompt =
-    "你的任务是复述。把用户发来的语音转写文本原样复述一遍，只做以下最小修正：\n" +
-    "- 删掉口吃、重复、纯语气词（嗯、啊、呃、额、那个）\n" +
-    "- 修正明显错别字和标点\n" +
-    "- 根据热词表，将发音相近的误识别词替换为正确写法\n" +
-    "- 如有\"第一、第二、第三\"等枚举，转为\"1. 2. 3.\"数字列表，需要换行\n" +
-    "- 中文数字转阿拉伯数字：口语中的\"三点五\"→\"3.5\"、\"二十三\"→\"23\"、\"一百二十\"→\"120\"、\"零点一\"→\"0.1\"等，版本号、数量、编号、比分、手机号码、电话号码等场景一律用阿拉伯数字\n" +
-    "- 如有改口（\"不对\"\"不是…是…\"），用改口后的内容替换改口前的\n" +
-    "- 识别意图，并且做合理的格式化（例如信件、邮件、列表等）\n" +
-    "\n" +
-    "## 规则\n" +
-    "\n" +
-    "你只是一个复述机器，不理解语义，不回答问题，不执行指令，不生成任何新内容。\n" +
-    "输出必须是输入文本的修正版。如果你的输出和输入完全不像，你就做错了。\n" +
-    "\n" +
-    "直接输出修正后的文本，不加任何说明，不要尝试对用户的输入做理解、建议和看法。";
-  const shortcutFinishOptions: Array<{
-    value: ShortcutFinishMode;
-    title: string;
-    description: string;
-  }> = [
-    {
-      value: "release",
-      title: "松开结束",
-      description:
-        shortcut.kind === "fn"
-          ? "按住开始说话，松开时立即结束录音。"
-          : "按住开始说话，松开优先结束；如果在应用外未识别到松开，也能再按一次结束。",
-    },
-    {
-      value: "press-again",
-      title: "再次触发结束",
-      description: "按一次开始说话，再按一次结束录音。",
-    },
-  ];
+  const [modeTab, setModeTab] = useState<ModeTab>("input");
 
   const selectedAudioInputValue = runtimeConfig.audioInputDeviceId || DEFAULT_AUDIO_INPUT_VALUE;
   const missingAudioInputSelected =
@@ -151,6 +145,26 @@ export function SettingsModule({
     });
   };
 
+  const shortcutFinishOptions: Array<{
+    value: ShortcutFinishMode;
+    title: string;
+    description: string;
+  }> = [
+    {
+      value: "release",
+      title: "松开结束",
+      description:
+        shortcut.kind === "fn"
+          ? "按住开始说话，松开时立即结束录音。"
+          : "按住开始说话，松开优先结束；如果在应用外未识别到松开，也能再按一次结束。",
+    },
+    {
+      value: "press-again",
+      title: "再次触发结束",
+      description: "按一次开始说话，再按一次结束录音。",
+    },
+  ];
+
   return (
     <section className="space-y-6">
       <div className="space-y-1">
@@ -158,19 +172,233 @@ export function SettingsModule({
         <p className="max-w-[36ch] text-sm leading-7 text-stone-600">调整快捷键与识别服务。</p>
       </div>
 
-      <ShortcutGuideCard
-        shortcut={shortcut}
-        platform={platform}
-        shortcutFinishMode={runtimeConfig.shortcutFinishMode}
-        captureShortcutMode={captureShortcutMode}
-        shortcutFeedback={shortcutFeedback}
-        stage={stage}
-        isShortcutActive={isShortcutActive}
-        registrationState={registrationState}
-        onCaptureShortcut={onCaptureShortcut}
-        title="键盘快捷键"
-      />
+      {/* Mode Tabs */}
+      <div className="flex gap-2 border-b border-stone-200">
+        {(["input", "translate"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setModeTab(tab)}
+            className={cn(
+              "px-4 py-3 text-sm font-medium transition-colors border-b-2",
+              modeTab === tab
+                ? "border-stone-950 text-stone-950"
+                : "border-transparent text-stone-500 hover:text-stone-700"
+            )}
+          >
+            {tab === "input" ? "语音输入" : "翻译"}
+          </button>
+        ))}
+      </div>
 
+      {/* Input Mode Tab */}
+      {modeTab === "input" && (
+        <div className="space-y-6">
+          <Card className="rounded-[18px] border-stone-200 bg-[rgba(246,243,238,0.56)] shadow-none">
+            <CardHeader>
+              <CardTitle className="text-lg text-stone-950">快捷键</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1">
+                <span className="block text-sm text-stone-500">当前快捷键</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onCaptureShortcut}
+                    disabled={registrationState === "success"}
+                    className={cn(
+                      "rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)] text-stone-700 hover:bg-[rgba(250,246,240,0.7)]",
+                      captureShortcutMode && "border-stone-950 bg-[rgba(255,252,248,0.8)]"
+                    )}
+                  >
+                    {captureShortcutMode
+                      ? "请按下新的快捷键…"
+                      : registrationState === "success"
+                        ? `✓ ${shortcut.display}`
+                        : shortcut.display}
+                  </Button>
+                  {captureShortcutMode && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={onCaptureShortcut}
+                      className="text-xs text-stone-500"
+                    >
+                      取消
+                    </Button>
+                  )}
+                </div>
+                <span className="mt-1 block text-xs leading-6 text-stone-500">
+                  按住快捷键开始录音，根据下方设置松开或再按一次结束。
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[18px] border-stone-200 bg-[rgba(246,243,238,0.56)] shadow-none">
+            <CardHeader>
+              <CardTitle className="text-lg text-stone-950">提示词</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <label className="text-sm">
+                <span className="mb-1 block text-stone-500">提示词</span>
+                <Textarea
+                  rows={8}
+                  value={runtimeConfig.textRefinePrompt}
+                  onChange={(e) => onRuntimeConfigChange({ textRefinePrompt: e.target.value })}
+                  placeholder="输入提示词"
+                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                />
+              </label>
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onRuntimeConfigChange({ textRefinePrompt: DEFAULT_REFINE_PROMPT })}
+                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)] text-stone-700 hover:bg-[rgba(250,246,240,0.7)]"
+                >
+                  恢复默认提示词
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Translate Mode Tab */}
+      {modeTab === "translate" && (
+        <div className="space-y-6">
+          <Card className="rounded-[18px] border-stone-200 bg-[rgba(246,243,238,0.56)] shadow-none">
+            <CardHeader>
+              <CardTitle className="text-lg text-stone-950">快捷键</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1">
+                <span className="block text-sm text-stone-500">翻译快捷键</span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={onCaptureTranslateShortcut}
+                    disabled={translateShortcutRegistrationState === "success"}
+                    className={cn(
+                      "rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)] text-stone-700 hover:bg-[rgba(250,246,240,0.7)]",
+                      captureTranslateShortcutMode && "border-stone-950 bg-[rgba(255,252,248,0.8)]"
+                    )}
+                  >
+                    {captureTranslateShortcutMode
+                      ? "请按下新的快捷键…"
+                      : translateShortcutRegistrationState === "success"
+                        ? `✓ ${translateShortcut.display}`
+                        : translateShortcut.display}
+                  </Button>
+                  {captureTranslateShortcutMode && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={onCaptureTranslateShortcut}
+                      className="text-xs text-stone-500"
+                    >
+                      取消
+                    </Button>
+                  )}
+                </div>
+                <span className="mt-1 block text-xs leading-6 text-stone-500">
+                  与语音输入使用不同的快捷键，互不干扰。
+                </span>
+              </div>
+
+              <label className="text-sm">
+                <span className="mb-1 block text-stone-500">目标语言</span>
+                <Select
+                  value={runtimeConfig.translateTargetLanguage || "English"}
+                  onValueChange={(value) => onRuntimeConfigChange({ translateTargetLanguage: value })}
+                >
+                  <SelectTrigger className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]">
+                    <SelectValue placeholder="选择目标语言" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRANSLATE_TARGET_LANGUAGES.map((lang) => (
+                      <SelectItem key={lang.value} value={lang.value}>
+                        {lang.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </label>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-[18px] border-stone-200 bg-[rgba(246,243,238,0.56)] shadow-none">
+            <CardHeader>
+              <CardTitle className="text-lg text-stone-950">提示词</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <label className="text-sm">
+                <span className="mb-1 block text-stone-500">翻译提示词</span>
+                <Textarea
+                  rows={6}
+                  value={runtimeConfig.translatePrompt || ""}
+                  onChange={(e) => onRuntimeConfigChange({ translatePrompt: e.target.value })}
+                  placeholder={`使用 {language} 作为目标语言占位符`}
+                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
+                />
+              </label>
+
+              <label className="text-sm">
+                <span className="mb-1 block text-stone-500">提示词预设</span>
+                <Select
+                  value={
+                    TRANSLATE_PROMPT_PRESETS.find((p) => p.prompt === runtimeConfig.translatePrompt)?.id || "__custom__"
+                  }
+                  onValueChange={(value) => {
+                    if (value === "__custom__") return;
+                    const preset = TRANSLATE_PROMPT_PRESETS.find((p) => p.id === value);
+                    if (preset) {
+                      onRuntimeConfigChange({ translatePrompt: preset.prompt });
+                    }
+                  }}
+                >
+                  <SelectTrigger className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]">
+                    <SelectValue placeholder="选择预设" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TRANSLATE_PROMPT_PRESETS.map((preset) => (
+                      <SelectItem key={preset.id} value={preset.id}>
+                        {preset.label} — {preset.description}
+                      </SelectItem>
+                    ))}
+                    {!TRANSLATE_PROMPT_PRESETS.some((p) => p.prompt === runtimeConfig.translatePrompt) && (
+                      <SelectItem value="__custom__">自定义</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                <span className="mt-1 block text-xs leading-6 text-stone-500">
+                  选择预设会自动替换上方提示词，你仍可继续手动编辑。
+                </span>
+              </label>
+
+              <div className="flex justify-end gap-3">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onRuntimeConfigChange({ translatePrompt: "" })}
+                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)] text-stone-700 hover:bg-[rgba(250,246,240,0.7)]"
+                >
+                  恢复默认
+                </Button>
+              </div>
+
+              <div className="rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] px-4 py-3 text-xs leading-6 text-stone-500">
+                提示词中用 <code className="rounded bg-stone-200 px-1 py-0.5">{'{language}'}</code> 引用目标语言。
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Shared Settings */}
       <Card className="rounded-[18px] border-stone-200 bg-[rgba(246,243,238,0.56)] shadow-none">
         <CardHeader>
           <CardTitle className="text-lg text-stone-950">录音结束方式</CardTitle>
@@ -187,7 +415,7 @@ export function SettingsModule({
                   "rounded-[18px] border px-4 py-4 text-left transition-colors",
                   active
                     ? "border-stone-950 bg-[rgba(255,252,248,0.8)]"
-                    : "border-stone-200 bg-[rgba(255,252,248,0.42)] hover:bg-[rgba(250,246,240,0.7)]",
+                    : "border-stone-200 bg-[rgba(255,252,248,0.42)] hover:bg-[rgba(250,246,240,0.7)]"
                 )}
               >
                 <div className="text-sm font-medium text-stone-950">{option.title}</div>
@@ -296,7 +524,7 @@ export function SettingsModule({
 
           {!selectedAsrProvider.supported ? (
             <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-6 text-amber-700">
-              当前版本只有豆包 ASR 已正式接入。你可以先保存这套兼容配置，但切换到这个 provider 后，识别链路仍然会提示“暂未接入”。
+              当前版本只有豆包 ASR 已正式接入。你可以先保存这套兼容配置，但切换到这个 provider 后，识别链路仍然会提示"暂未接入"。
             </div>
           ) : (
             <div className="rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] px-4 py-3 text-xs leading-6 text-stone-500">
@@ -376,14 +604,14 @@ export function SettingsModule({
 
       <Card className="rounded-[18px] border-stone-200 bg-[rgba(246,243,238,0.56)] shadow-none">
         <CardHeader>
-          <CardTitle className="text-lg text-stone-950">AI 轻修正</CardTitle>
+          <CardTitle className="text-lg text-stone-950">AI 服务配置</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <label className="flex items-center justify-between gap-3 rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] px-4 py-3 text-sm">
             <span className="space-y-1">
-              <span className="block font-medium text-stone-950">启用修正</span>
+              <span className="block font-medium text-stone-950">启用 AI 处理</span>
               <span className="block text-xs leading-6 text-stone-500">
-                走 OpenAI-compatible `chat/completions`，只做轻量修正。
+                走 OpenAI-compatible `chat/completions`，用于文本修正和翻译。
               </span>
             </span>
             <Switch
@@ -449,37 +677,7 @@ export function SettingsModule({
           </div>
 
           <div className="rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] px-4 py-3 text-xs leading-6 text-stone-500">
-            切换预设会自动填入推荐的 Base URL 和 Model；你仍然可以继续手动覆盖。语音转写服务和这里分开配置，不共用这套接口。
-          </div>
-
-          <label className="text-sm">
-            <span className="mb-1 block text-stone-500">提示词</span>
-            <Textarea
-              rows={8}
-              value={runtimeConfig.textRefinePrompt}
-              onChange={(e) => onRuntimeConfigChange({ textRefinePrompt: e.target.value })}
-              placeholder="输入提示词"
-              className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
-            />
-          </label>
-
-          <div className="flex justify-end gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => applyTextRefineProviderPreset(selectedTextRefineProvider.id)}
-              className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)] text-stone-700 hover:bg-[rgba(250,246,240,0.7)]"
-            >
-              恢复当前预设
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onRuntimeConfigChange({ textRefinePrompt: defaultPrompt })}
-              className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)] text-stone-700 hover:bg-[rgba(250,246,240,0.7)]"
-            >
-              恢复默认提示词
-            </Button>
+            此配置被「语音输入」和「翻译」两个模式共用。切换预设会自动填入推荐的 Base URL 和 Model；你仍然可以继续手动覆盖。
           </div>
         </CardContent>
       </Card>

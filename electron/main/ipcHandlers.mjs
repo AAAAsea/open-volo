@@ -30,6 +30,9 @@ export function registerIpcHandlers({
   transcribeAudio,
   refineTranscriptText,
   updateManager,
+  reRegisterTranslateShortcut,
+  sendTranslateShortcutApplied,
+  handleGlobalTranslateShortcut,
 }) {
   const TRANSCRIPTION_TIMEOUT_MS = 10000;
   const REFINE_NON_FATAL_REASONS = new Set([
@@ -94,6 +97,28 @@ export function registerIpcHandlers({
     return result;
   });
 
+  ipcMain.handle('voice:set-translate-shortcut', async (_event, payload) => {
+    try {
+      const accelerator = String(payload?.accelerator ?? '').trim();
+      const display = String(payload?.display ?? '').trim();
+      if (!accelerator || !display) {
+        sendTranslateShortcutApplied(false, '快捷键格式无效');
+        return { ok: false, error: '快捷键格式无效' };
+      }
+      const config = await runtimeConfigStore.updateConfig({
+        translateShortcutAccelerator: accelerator,
+        translateShortcutDisplay: display,
+      });
+      reRegisterTranslateShortcut();
+      return { ok: true };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
   ipcMain.handle('voice:begin-shortcut-capture', () => {
     setShortcutCaptureActive(true);
     return { ok: true };
@@ -118,6 +143,15 @@ export function registerIpcHandlers({
   });
 
   ipcMain.handle('voice:end-shortcut-hold', (_event, { source }) => {
+    if (recording.getStage() === 'arming') {
+      cancelRecording(source ?? 'window-hotkey');
+    } else {
+      stopRecording(source ?? 'window-hotkey');
+    }
+    return { ok: true };
+  });
+
+  ipcMain.handle('voice:end-translate-hold', (_event, { source }) => {
     if (recording.getStage() === 'arming') {
       cancelRecording(source ?? 'window-hotkey');
     } else {
@@ -337,7 +371,8 @@ export function registerIpcHandlers({
           const transcription = await transcribeAudio(rawData);
           asrText = transcription.text;
           recording.setProcessingStage('refining');
-          const refined = await refineTranscriptText(asrText);
+          const activeMode = recording.getActiveMode();
+          const refined = await refineTranscriptText(asrText, { mode: activeMode });
           refinedText = refined.text;
           shouldWarnRefineFallback =
             Boolean(asrText) &&
