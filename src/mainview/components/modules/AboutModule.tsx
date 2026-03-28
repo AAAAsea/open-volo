@@ -50,9 +50,9 @@ export function AboutModule({
     idle: "可手动检查新版本，应用也会在后台定时检查。",
     checking: "正在检查 GitHub Release 中是否有新版本。",
     available: `发现新版本 ${updateState.latestVersion || ""}，可以开始下载。`.trim(),
-    downloading: "正在下载更新包，完成后可一键重启安装。",
-    downloaded: "更新已下载完成，重启应用即可安装。",
-    installing: "正在退出并安装更新。",
+    downloading: "正在下载更新包，完成后可安装。",
+    downloaded: "更新已下载完成。点击「退出并安装」后，请手动重新打开应用。",
+    installing: "正在退出并安装更新，请手动重新打开应用。",
     "up-to-date": "当前已经是最新版本。",
     error: updateState.error || "检查更新失败，请稍后再试。",
     unsupported: updateState.error || "当前环境暂不支持端内更新。",
@@ -220,7 +220,7 @@ export function AboutModule({
                 disabled={!updateState.downloaded || updateState.status === "installing"}
                 className="rounded-md bg-stone-950 text-stone-50 hover:bg-stone-800"
               >
-                {updateState.status === "installing" ? "安装中..." : "重启安装"}
+                {updateState.status === "installing" ? "安装中..." : "退出并安装"}
               </Button>
             </div>
           </div>

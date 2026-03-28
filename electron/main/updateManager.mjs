@@ -257,6 +257,7 @@ export function createUpdateManager({ app, send }) {
       downloaded: state.downloaded,
       latestVersion: state.latestVersion,
       inApplicationsFolder,
+      platform: process.platform,
     });
 
     setState({
@@ -266,8 +267,21 @@ export function createUpdateManager({ app, send }) {
       error: '',
     });
 
+    // macOS: DMG updates don't support auto-restart
+    // Set autoInstallOnAppQuit and quit - update will apply on next launch
+    if (process.platform === 'darwin') {
+      console.log('[Volo] macOS: setting autoInstallOnAppQuit and quitting');
+      autoUpdater.autoInstallOnAppQuit = true;
+      // Small delay to ensure state is broadcast before quit
+      setTimeout(() => {
+        app.quit();
+      }, 100);
+      return { ok: true, state: getState() };
+    }
+
+    // Windows: quitAndInstall with force restart
     setTimeout(() => {
-      console.log('[Volo] calling autoUpdater.quitAndInstall()');
+      console.log('[Volo] Windows: calling autoUpdater.quitAndInstall()');
       autoUpdater.quitAndInstall(false, true);
     }, 100);
 
