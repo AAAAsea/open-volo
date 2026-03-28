@@ -6,6 +6,23 @@ This project loosely follows Keep a Changelog and uses semantic version tags suc
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-03-28
+
+### Added
+
+- Added animated splash screen on startup (pulsing logo + bouncing dots)
+- Added branch management documentation (all changes via Pull Requests)
+
+### Changed
+
+- Simplified Doubao ASR config: only 3 required fields (APPID, Token, Secret Key), Flash URL moved to advanced settings
+- Removed model selector for Doubao ASR (Flash mode only, aligned with app positioning)
+
+### Fixed
+
+- Fixed macOS auto-update: app now quits and applies update on next launch (DMG updates don't support auto-restart)
+- Fixed global text selection: body text is now non-selectable, only inputs/textareas remain selectable
+
 ## [0.2.0] - 2026-03-28
 
 ### Added
