@@ -604,8 +604,8 @@ export function SettingsModule({
               )}
 
               <div className="grid gap-4 xl:grid-cols-3">
-              <label className="text-sm">
-                <span className="mb-1 block text-stone-500">APPID</span>
+                <label className="text-sm">
+                  <span className="mb-1 block text-stone-500">APPID</span>
                 <Input
                   type="text"
                   value={runtimeConfig.asrAppId}
@@ -634,6 +634,7 @@ export function SettingsModule({
                   className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)]"
                 />
               </label>
+            </div>
             </div>
           ) : (
             <div className="grid gap-4 xl:grid-cols-3">
