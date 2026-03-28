@@ -514,6 +514,7 @@ export function registerIpcHandlers({
       refinedText: refinedText || text,
       audioPath,
       durationMs,
+      mode: recording.getActiveMode(),
     });
 
     await bubble.finishTranscribingProgress();

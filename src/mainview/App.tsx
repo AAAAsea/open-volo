@@ -534,15 +534,16 @@ export default function App() {
     });
 
     const offTranscription = window.volo.onTranscription(
-      ({ text, originalText, refinedText, audioPath, durationMs }) => {
+      ({ text, originalText, refinedText, audioPath, durationMs, mode: mainMode }) => {
         // Main-process cleanup may arrive a beat later; drop the local "refining"
         // state as soon as final text is ready so the UI feels finished on paste.
         setStage("idle");
 
+        const activeMode = mainMode || modeRef.current;
         const original = originalText || text;
         const refined = refinedText || text;
 
-        const processed = applyModeTransform(refined, modeRef.current);
+        const processed = applyModeTransform(refined, activeMode);
 
         setStats((prev) => ({
           sessionCount: prev.sessionCount + 1,
@@ -555,7 +556,7 @@ export default function App() {
             id: createHistoryId(),
             text: original,
             processedText: refined,
-            mode: modeRef.current,
+            mode: activeMode,
             textRefineEnabled: runtimeConfigRef.current.textRefineEnabled,
             durationMs,
             createdAt: new Date().toISOString(),

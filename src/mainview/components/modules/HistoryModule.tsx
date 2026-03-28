@@ -244,8 +244,19 @@ function HistoryItemCard({
   return (
     <article className={`px-5 py-4 ${!isLast ? "border-b border-stone-200" : ""}`}>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="text-sm font-medium text-stone-900 whitespace-nowrap">
-          {formatTime(item.createdAt)} · {Math.round(item.durationMs / 1000)}s
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="text-sm font-medium text-stone-900 whitespace-nowrap">
+            {formatTime(item.createdAt)} · {Math.round(item.durationMs / 1000)}s
+          </div>
+          <span
+            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium ${
+              item.mode === "translate"
+                ? "bg-blue-50 text-blue-600"
+                : "bg-stone-100 text-stone-500"
+            }`}
+          >
+            {item.mode === "translate" ? "翻译" : "输入"}
+          </span>
         </div>
         <HistoryCopyButton text={afterText || ""} />
       </div>
