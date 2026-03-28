@@ -8,13 +8,58 @@
       content="default-src 'self' blob:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' blob:; worker-src 'self' blob:; connect-src 'self' https: wss:; media-src 'self' blob:;"
     />
     <title>Volo</title>
+    <style>
+      @keyframes volo-pulse {
+        0%, 100% { opacity: 0.4; transform: scale(1); }
+        50% { opacity: 1; transform: scale(1.05); }
+      }
+      @keyframes volo-dot {
+        0%, 20% { opacity: 0.2; }
+        50% { opacity: 1; }
+        100% { opacity: 0.2; }
+      }
+      .volo-splash {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        background: linear-gradient(135deg, #f4eee6 0%, #f8f4ed 100%);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      .volo-splash-logo {
+        font-family: "Cormorant Garamond", "Iowan Old Style", serif;
+        font-size: 48px;
+        font-weight: 600;
+        color: #1c1917;
+        letter-spacing: -0.02em;
+        animation: volo-pulse 2s ease-in-out infinite;
+      }
+      .volo-splash-dots {
+        display: flex;
+        gap: 6px;
+        margin-top: 16px;
+      }
+      .volo-splash-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #78716c;
+        animation: volo-dot 1.4s ease-in-out infinite;
+      }
+      .volo-splash-dot:nth-child(2) { animation-delay: 0.2s; }
+      .volo-splash-dot:nth-child(3) { animation-delay: 0.4s; }
+    </style>
   </head>
   <body>
     <div id="root">
-      <div
-        style="color:#e5e5e5;font-family:-apple-system,BlinkMacSystemFont,system-ui,sans-serif;padding:16px;"
-      >
-        Volo 正在加载界面…
+      <div class="volo-splash">
+        <div class="volo-splash-logo">Volo</div>
+        <div class="volo-splash-dots">
+          <div class="volo-splash-dot"></div>
+          <div class="volo-splash-dot"></div>
+          <div class="volo-splash-dot"></div>
+        </div>
       </div>
     </div>
     <script type="module" src="/main.tsx"></script>
