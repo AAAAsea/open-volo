@@ -92,6 +92,7 @@ declare global {
           refinedText?: string;
           audioPath: string;
           durationMs: number;
+          mode?: "input" | "translate";
         }) => void,
       ): () => void;
       onShortcutApplied(
