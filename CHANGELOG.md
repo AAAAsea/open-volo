@@ -6,6 +6,15 @@ This project loosely follows Keep a Changelog and uses semantic version tags suc
 
 ## [Unreleased]
 
+### Fixed
+
+- Fixed macOS in-app install flow so clicking `退出并安装` now goes through `electron-updater.quitAndInstall()` instead of only quitting the app.
+
+### Changed
+
+- Changed update checks to run automatically on app launch and then at most once every 24 hours.
+- Refined the About page update card to emphasize current status, show a clearer `当前已是最新版本` state, and add animated feedback while checking or installing.
+
 ## [0.2.2] - 2026-03-29
 
 ### Fixed

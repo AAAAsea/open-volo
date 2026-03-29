@@ -393,6 +393,8 @@ recording = createRecordingController({
 updateManager = createUpdateManager({
   app,
   send,
+  fsSync,
+  path,
 });
 
 function sendShortcutApplied(ok, error) {
