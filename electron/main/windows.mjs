@@ -34,8 +34,6 @@ export function createMainWindow({
   const mainWindow = new BrowserWindow({
     width: 952,
     height: 602,
-    x: 200,
-    y: 120,
     title: 'Volo',
     resizable: true,
     minimizable: true,
@@ -60,6 +58,8 @@ export function createMainWindow({
   } else {
     mainWindow.loadFile(rendererIndexPath);
   }
+
+  mainWindow.center();
 
   mainWindow.webContents.setZoomFactor(1);
   mainWindow.webContents.setVisualZoomLevelLimits(1, 1).catch(() => {});

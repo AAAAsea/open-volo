@@ -3,8 +3,8 @@ import updaterPkg from 'electron-updater';
 const { autoUpdater } = updaterPkg;
 
 const SUPPORTED_PLATFORMS = new Set(['darwin', 'win32']);
-const STARTUP_CHECK_DELAY_MS = 15_000;
-const PERIODIC_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const STARTUP_CHECK_DELAY_MS = 0;
+const PERIODIC_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 
 function normalizeReleaseDate(value) {
   if (!value) return '';
@@ -79,7 +79,13 @@ function normalizeError(error) {
   return String(error || '未知错误');
 }
 
-function createInitialState(app) {
+function normalizeCheckedAt(value) {
+  if (!value) return '';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : date.toISOString();
+}
+
+function createInitialState(app, persistedMeta = {}) {
   const packaged = app.isPackaged;
   const platformSupported = SUPPORTED_PLATFORMS.has(process.platform);
   const supported = packaged && platformSupported;
@@ -95,7 +101,7 @@ function createInitialState(app) {
     downloadPercent: 0,
     downloadedBytes: 0,
     totalBytes: 0,
-    lastCheckedAt: '',
+    lastCheckedAt: normalizeCheckedAt(persistedMeta.lastCheckedAt),
     releaseDate: '',
     releaseNotes: '',
     error: supported
@@ -106,12 +112,49 @@ function createInitialState(app) {
   };
 }
 
-export function createUpdateManager({ app, send }) {
-  let state = createInitialState(app);
+export function createUpdateManager({ app, send, fsSync, path }) {
+  const getStateStorePath = () => path.join(app.getPath('userData'), 'update-state.json');
+  const loadPersistedMeta = () => {
+    try {
+      const file = getStateStorePath();
+      if (!fsSync.existsSync(file)) {
+        return {};
+      }
+      const content = fsSync.readFileSync(file, 'utf-8');
+      const parsed = JSON.parse(content);
+      return typeof parsed === 'object' && parsed ? parsed : {};
+    } catch {
+      return {};
+    }
+  };
+  let persistedMeta = loadPersistedMeta();
+  let state = createInitialState(app, persistedMeta);
   let checkPromise = null;
   let downloadPromise = null;
   let startupTimer = null;
   let intervalTimer = null;
+
+  const persistMeta = (patch = {}) => {
+    try {
+      persistedMeta = { ...persistedMeta, ...patch };
+      fsSync.writeFileSync(getStateStorePath(), JSON.stringify(persistedMeta, null, 2), 'utf-8');
+    } catch {
+      // ignore persistence failures
+    }
+  };
+
+  const markCheckedNow = () => {
+    const checkedAt = new Date().toISOString();
+    persistMeta({ lastCheckedAt: checkedAt });
+    return checkedAt;
+  };
+
+  const shouldAutoCheckNow = () => {
+    if (!state.supported) return false;
+    const lastCheckedAt = normalizeCheckedAt(persistedMeta.lastCheckedAt);
+    if (!lastCheckedAt) return true;
+    return Date.now() - new Date(lastCheckedAt).getTime() >= PERIODIC_CHECK_INTERVAL_MS;
+  };
 
   const broadcastState = () => {
     send('voice:update-state', state);
@@ -179,10 +222,11 @@ export function createUpdateManager({ app, send }) {
       return { ok: true, state: getState() };
     } catch (error) {
       const message = normalizeError(error);
+      const checkedAt = markCheckedNow();
       const nextState = setState({
         status: 'error',
         checking: false,
-        lastCheckedAt: new Date().toISOString(),
+        lastCheckedAt: checkedAt,
         error: message,
       });
       if (manual) {
@@ -267,14 +311,15 @@ export function createUpdateManager({ app, send }) {
       error: '',
     });
 
-    // macOS: DMG updates don't support auto-restart
-    // Set autoInstallOnAppQuit and quit - update will apply on next launch
+    // macOS uses the downloaded ZIP via Squirrel.Mac.
+    // Calling quitAndInstall() is required so electron-updater can hand the ZIP
+    // off to the native updater before quitting. We keep auto-run disabled to
+    // preserve the current UX of reopening the app manually after install.
     if (process.platform === 'darwin') {
-      console.log('[Volo] macOS: setting autoInstallOnAppQuit and quitting');
-      autoUpdater.autoInstallOnAppQuit = true;
-      // Small delay to ensure state is broadcast before quit
+      console.log('[Volo] macOS: calling autoUpdater.quitAndInstall()');
+      autoUpdater.autoRunAppAfterInstall = false;
       setTimeout(() => {
-        app.quit();
+        autoUpdater.quitAndInstall();
       }, 100);
       return { ok: true, state: getState() };
     }
@@ -296,6 +341,7 @@ export function createUpdateManager({ app, send }) {
 
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = false;
+    autoUpdater.autoRunAppAfterInstall = process.platform !== 'darwin';
     autoUpdater.logger = console;
 
     autoUpdater.on('checking-for-update', () => {
@@ -307,6 +353,7 @@ export function createUpdateManager({ app, send }) {
     });
 
     autoUpdater.on('update-available', (info) => {
+      const checkedAt = markCheckedNow();
       setState({
         status: 'available',
         checking: false,
@@ -316,13 +363,14 @@ export function createUpdateManager({ app, send }) {
         downloadPercent: 0,
         downloadedBytes: 0,
         totalBytes: 0,
-        lastCheckedAt: new Date().toISOString(),
+        lastCheckedAt: checkedAt,
         error: '',
         ...applyUpdateInfo(info),
       });
     });
 
     autoUpdater.on('update-not-available', (info) => {
+      const checkedAt = markCheckedNow();
       setState({
         status: 'up-to-date',
         checking: false,
@@ -332,7 +380,7 @@ export function createUpdateManager({ app, send }) {
         downloadPercent: 0,
         downloadedBytes: 0,
         totalBytes: 0,
-        lastCheckedAt: new Date().toISOString(),
+        lastCheckedAt: checkedAt,
         error: '',
         ...applyUpdateInfo(info),
       });
@@ -353,6 +401,7 @@ export function createUpdateManager({ app, send }) {
     });
 
     autoUpdater.on('update-downloaded', (info) => {
+      const checkedAt = markCheckedNow();
       console.log('[Volo] Auto update downloaded:', {
         version: info?.version,
         files: Array.isArray(info?.files) ? info.files.map((file) => file.url || file.info?.url).filter(Boolean) : [],
@@ -365,7 +414,7 @@ export function createUpdateManager({ app, send }) {
         downloaded: true,
         downloadPercent: 100,
         downloadedBytes: Number(state.totalBytes || state.downloadedBytes || 0),
-        lastCheckedAt: new Date().toISOString(),
+        lastCheckedAt: checkedAt,
         error: '',
         ...applyUpdateInfo(info),
       });
@@ -373,12 +422,13 @@ export function createUpdateManager({ app, send }) {
 
     autoUpdater.on('error', (error) => {
       const message = normalizeError(error);
+      const checkedAt = markCheckedNow();
       console.error('[Volo] Auto update error:', message);
       setState({
         status: 'error',
         checking: false,
         downloading: false,
-        lastCheckedAt: new Date().toISOString(),
+        lastCheckedAt: checkedAt,
         error: message,
       });
     });
@@ -390,11 +440,15 @@ export function createUpdateManager({ app, send }) {
     broadcastState();
 
     startupTimer = setTimeout(() => {
-      void checkForUpdates();
+      if (shouldAutoCheckNow()) {
+        void checkForUpdates();
+      }
     }, STARTUP_CHECK_DELAY_MS);
 
     intervalTimer = setInterval(() => {
-      void checkForUpdates();
+      if (shouldAutoCheckNow()) {
+        void checkForUpdates();
+      }
     }, PERIODIC_CHECK_INTERVAL_MS);
   };
 

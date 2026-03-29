@@ -1,4 +1,5 @@
 import logoUrl from "../../../../assets/branding/volo.png";
+import { CheckCheck, Download, LoaderCircle, RefreshCw, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -35,6 +36,62 @@ function formatTime(value: string) {
   }).format(date);
 }
 
+function getUpdateHeadline(updateState: UpdateState) {
+  switch (updateState.status) {
+    case "checking":
+      return "正在检查更新";
+    case "available":
+      return `发现新版本 ${updateState.latestVersion || ""}`.trim();
+    case "downloading":
+      return `正在下载 ${updateState.latestVersion || "更新包"}`.trim();
+    case "downloaded":
+      return `${updateState.latestVersion || "新版本"} 已准备安装`;
+    case "installing":
+      return "正在安装更新";
+    case "up-to-date":
+      return "当前已是最新版本";
+    case "error":
+      return "更新检查失败";
+    case "unsupported":
+      return "当前环境不支持自动更新";
+    default:
+      return "应用更新";
+  }
+}
+
+function getStatusTone(status: UpdateState["status"]) {
+  switch (status) {
+    case "up-to-date":
+      return {
+        badge: "border-emerald-200 bg-emerald-50 text-emerald-800",
+        panel: "border-emerald-200 bg-[#f4fbf6]",
+      };
+    case "available":
+    case "downloaded":
+      return {
+        badge: "border-stone-300 bg-stone-950 text-stone-50",
+        panel: "border-stone-200 bg-[rgba(255,252,248,0.88)]",
+      };
+    case "checking":
+    case "downloading":
+    case "installing":
+      return {
+        badge: "border-amber-200 bg-amber-50 text-amber-900",
+        panel: "border-amber-200 bg-[#fcf7ec]",
+      };
+    case "error":
+      return {
+        badge: "border-rose-200 bg-rose-50 text-rose-800",
+        panel: "border-rose-200 bg-[#fff6f5]",
+      };
+    default:
+      return {
+        badge: "border-stone-200 bg-[rgba(255,252,248,0.8)] text-stone-700",
+        panel: "border-stone-200 bg-[rgba(255,252,248,0.88)]",
+      };
+  }
+}
+
 export function AboutModule({
   runtimeConfig,
   updateState,
@@ -47,7 +104,7 @@ export function AboutModule({
   onRuntimeConfigChange,
 }: AboutModuleProps) {
   const updateStatusCopy = {
-    idle: "可手动检查新版本，应用也会在后台定时检查。",
+    idle: "启动时会自动检查一次更新，之后每 24 小时检查一次。",
     checking: "正在检查 GitHub Release 中是否有新版本。",
     available: `发现新版本 ${updateState.latestVersion || ""}，可以开始下载。`.trim(),
     downloading: "正在下载更新包，完成后可安装。",
@@ -61,6 +118,16 @@ export function AboutModule({
   const renderedReleaseNotes = hasReleaseNotes
     ? renderReleaseNotesToHtml(updateState.releaseNotes)
     : "";
+  const statusTone = getStatusTone(updateState.status);
+  const updateHeadline = getUpdateHeadline(updateState);
+  const showCheckingIndicator = updateState.status === "checking";
+  const showDownloadButton =
+    updateState.supported &&
+    updateState.updateAvailable &&
+    !updateState.downloading &&
+    !updateState.downloaded &&
+    updateState.status !== "installing";
+  const showInstallButton = updateState.downloaded || updateState.status === "installing";
 
   return (
     <section className="space-y-6">
@@ -129,32 +196,91 @@ export function AboutModule({
           <CardTitle className="text-lg text-stone-950">应用更新</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-[18px] border border-stone-200 bg-[rgba(255,252,248,0.42)] p-4">
+          <div className={`rounded-[18px] border p-5 ${statusTone.panel}`}>
             <div className="flex flex-wrap items-start justify-between gap-4">
-              <div className="space-y-1">
-                <div className="text-sm font-medium text-stone-950">
-                  当前版本 {updateState.currentVersion || "未知版本"}
+              <div className="space-y-3">
+                <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium ${statusTone.badge}`}>
+                  {showCheckingIndicator ? (
+                    <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                  ) : updateState.status === "up-to-date" ? (
+                    <CheckCheck className="h-3.5 w-3.5" />
+                  ) : updateState.status === "available" || updateState.status === "downloaded" ? (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  ) : updateState.status === "downloading" || updateState.status === "installing" ? (
+                    <LoaderCircle className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-3.5 w-3.5" />
+                  )}
+                  <span>
+                    {updateState.status === "up-to-date"
+                      ? "已同步"
+                      : updateState.status === "checking"
+                        ? "检查中"
+                        : updateState.status === "downloading"
+                          ? "下载中"
+                          : updateState.status === "downloaded"
+                            ? "可安装"
+                            : updateState.status === "installing"
+                              ? "安装中"
+                              : updateState.status === "available"
+                                ? "发现更新"
+                                : updateState.status === "error"
+                                  ? "检查失败"
+                                  : updateState.status === "unsupported"
+                                    ? "不可用"
+                                    : "更新"}
+                  </span>
                 </div>
-                <div className="text-xs leading-6 text-stone-500">{updateStatusCopy[updateState.status]}</div>
+
+                <div className="space-y-2">
+                  <div className="text-2xl font-semibold tracking-tight text-stone-950 md:text-[30px]">
+                    {updateHeadline}
+                  </div>
+                  <div className="max-w-[48ch] text-sm leading-7 text-stone-600">
+                    {updateStatusCopy[updateState.status]}
+                  </div>
+                </div>
               </div>
-              <div className="text-right text-[11px] leading-5 text-stone-400">
-                <div>最近检查：{formatTime(updateState.lastCheckedAt)}</div>
-                <div>发布时间：{formatTime(updateState.releaseDate)}</div>
+
+              <div className="grid min-w-[230px] gap-3 sm:grid-cols-2">
+                <div className="rounded-[14px] border border-stone-200 bg-[rgba(255,252,248,0.72)] px-4 py-3">
+                  <div className="text-xs font-medium uppercase tracking-[0.16em] text-stone-400">当前版本</div>
+                  <div className="mt-2 text-xl font-semibold tracking-tight text-stone-950">
+                    {updateState.currentVersion || "未知版本"}
+                  </div>
+                </div>
+                <div className="rounded-[14px] border border-stone-200 bg-[rgba(255,252,248,0.72)] px-4 py-3">
+                  <div className="text-xs font-medium uppercase tracking-[0.16em] text-stone-400">
+                    {updateState.status === "up-to-date" ? "已安装版本" : "最新版本"}
+                  </div>
+                  <div className="mt-2 text-xl font-semibold tracking-tight text-stone-950">
+                    {updateState.latestVersion || updateState.currentVersion || "未检查"}
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="mt-3 grid gap-2 text-xs leading-6 text-stone-500 xl:grid-cols-2">
-              <div>最新版本：{updateState.latestVersion || "尚未发现更新"}</div>
-              <div>来源：{updateState.supported ? "GitHub Releases" : "当前环境不支持自动更新"}</div>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <div className="rounded-md border border-stone-200 bg-[rgba(255,252,248,0.72)] px-3 py-1.5 text-sm text-stone-600">
+                最近检查：{formatTime(updateState.lastCheckedAt)}
+              </div>
+              {updateState.releaseDate ? (
+                <div className="rounded-md border border-stone-200 bg-[rgba(255,252,248,0.72)] px-3 py-1.5 text-sm text-stone-600">
+                  发布日期：{formatTime(updateState.releaseDate)}
+                </div>
+              ) : null}
+              <div className="rounded-md border border-stone-200 bg-[rgba(255,252,248,0.72)] px-3 py-1.5 text-sm text-stone-600">
+                自动检查：启动时 / 每 24 小时
+              </div>
             </div>
 
             {updateState.downloading || updateState.downloaded ? (
-              <div className="mt-4 space-y-2">
+              <div className="mt-5 space-y-2">
                 <Progress
                   value={Math.max(0, Math.min(100, updateState.downloadPercent))}
-                  className="h-2 bg-stone-200 [&>div]:bg-stone-900"
+                  className="h-2.5 bg-stone-200/80 [&>div]:bg-stone-900"
                 />
-                <div className="flex items-center justify-between text-[11px] leading-5 text-stone-400">
+                <div className="flex items-center justify-between text-sm text-stone-500">
                   <span>{Math.round(updateState.downloadPercent)}%</span>
                   <span>
                     {updateState.totalBytes > 0
@@ -166,20 +292,20 @@ export function AboutModule({
             ) : null}
 
             {hasReleaseNotes ? (
-              <div className="mt-4 space-y-2">
+              <div className="mt-5 space-y-2">
                 <div className="text-sm font-medium text-stone-950">发布说明</div>
                 <div
-                  className="max-h-[280px] overflow-y-auto rounded-md border border-stone-200 bg-[rgba(250,247,242,0.9)] px-4 py-3 text-xs leading-6 text-stone-700 [&_a]:underline [&_a]:decoration-stone-300 [&_a]:underline-offset-4 [&_blockquote]:border-l-2 [&_blockquote]:border-stone-300 [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-[rgba(120,100,82,0.08)] [&_code]:px-1.5 [&_code]:py-0.5 [&_h1]:mb-2 [&_h1]:mt-3 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:mt-3 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:mt-3 [&_h3]:text-sm [&_h3]:font-semibold [&_li]:ml-4 [&_li]:list-disc [&_ol]:space-y-1 [&_p]:mb-3 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-[rgba(120,100,82,0.08)] [&_pre]:p-3 [&_ul]:space-y-1"
+                  className="max-h-[280px] overflow-y-auto rounded-md border border-stone-200 bg-[rgba(255,252,248,0.72)] px-4 py-3 text-xs leading-6 text-stone-700 [&_a]:underline [&_a]:decoration-stone-300 [&_a]:underline-offset-4 [&_blockquote]:border-l-2 [&_blockquote]:border-stone-300 [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-[rgba(120,100,82,0.08)] [&_code]:px-1.5 [&_code]:py-0.5 [&_h1]:mb-2 [&_h1]:mt-3 [&_h1]:text-sm [&_h1]:font-semibold [&_h2]:mb-2 [&_h2]:mt-3 [&_h2]:text-sm [&_h2]:font-semibold [&_h3]:mb-2 [&_h3]:mt-3 [&_h3]:text-sm [&_h3]:font-semibold [&_li]:ml-4 [&_li]:list-disc [&_ol]:space-y-1 [&_p]:mb-3 [&_pre]:overflow-x-auto [&_pre]:rounded [&_pre]:bg-[rgba(120,100,82,0.08)] [&_pre]:p-3 [&_ul]:space-y-1"
                   dangerouslySetInnerHTML={{ __html: renderedReleaseNotes }}
                 />
               </div>
-            ) : (
-              <div className="mt-4 rounded-[16px] border border-stone-200 bg-[rgba(250,247,242,0.72)] px-4 py-3 text-xs leading-6 text-stone-500">
+            ) : updateState.updateAvailable ? (
+              <div className="mt-4 rounded-[14px] border border-stone-200 bg-[rgba(255,252,248,0.72)] px-4 py-3 text-xs leading-6 text-stone-500">
                 当前 Release 没有附带可读的详细说明。可以前往 GitHub Releases 查看完整发布页。
               </div>
-            )}
+            ) : null}
 
-            <div className="mt-4 flex flex-wrap justify-end gap-3">
+            <div className="mt-5 flex flex-wrap justify-end gap-3">
               <Button
                 asChild
                 type="button"
@@ -197,31 +323,49 @@ export function AboutModule({
                 disabled={updateState.status === "checking" || updateState.status === "installing"}
                 className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)] text-stone-700 hover:bg-[rgba(250,246,240,0.7)]"
               >
-                {updateState.status === "checking" ? "检查中..." : "检查更新"}
+                <span className="inline-flex items-center gap-2">
+                  {updateState.status === "checking" ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  {updateState.status === "checking" ? "检查中" : "检查更新"}
+                </span>
               </Button>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onDownloadUpdate}
-                disabled={
-                  !updateState.supported ||
-                  !updateState.updateAvailable ||
-                  updateState.downloading ||
-                  updateState.downloaded ||
-                  updateState.status === "installing"
-                }
-                className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)] text-stone-700 hover:bg-[rgba(250,246,240,0.7)]"
-              >
-                {updateState.downloading ? "下载中..." : "下载更新"}
-              </Button>
-              <Button
-                type="button"
-                onClick={onInstallUpdate}
-                disabled={!updateState.downloaded || updateState.status === "installing"}
-                className="rounded-md bg-stone-950 text-stone-50 hover:bg-stone-800"
-              >
-                {updateState.status === "installing" ? "安装中..." : "退出并安装"}
-              </Button>
+              {showDownloadButton ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onDownloadUpdate}
+                  className="rounded-md border-stone-200 bg-[rgba(255,252,248,0.42)] text-stone-700 hover:bg-[rgba(250,246,240,0.7)]"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    {updateState.downloading ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4" />
+                    )}
+                    {updateState.downloading ? "下载中" : "下载更新"}
+                  </span>
+                </Button>
+              ) : null}
+              {showInstallButton ? (
+                <Button
+                  type="button"
+                  onClick={onInstallUpdate}
+                  disabled={updateState.status === "installing"}
+                  className="rounded-md bg-stone-950 text-stone-50 hover:bg-stone-800"
+                >
+                  <span className="inline-flex items-center gap-2">
+                    {updateState.status === "installing" ? (
+                      <LoaderCircle className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    {updateState.status === "installing" ? "安装中" : "退出并安装"}
+                  </span>
+                </Button>
+              ) : null}
             </div>
           </div>
         </CardContent>
