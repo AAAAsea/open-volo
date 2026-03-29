@@ -46,7 +46,6 @@ import type {
   RecorderState,
   RuntimeConfig,
   ShortcutConfig,
-  ShortcutFinishMode,
   UpdateState,
   UsageStats,
   VoiceHistoryItem,
@@ -162,8 +161,6 @@ export default function App() {
   const [waveform, setWaveform] = useState<number[]>(
     Array.from({ length: WAVEFORM_BARS }, () => 0.1),
   );
-  const [shortcutFeedback, setShortcutFeedback] =
-    useState<string>("未同步到主进程");
   const [mode] = useState<VoiceMode>("input");
   const [permissions, setPermissions] = useState<{
     microphone: PermissionStatus;
@@ -182,7 +179,6 @@ export default function App() {
   const [shortcutRegistrationState, setShortcutRegistrationState] = useState<
     "idle" | "success" | "error"
   >("idle");
-  const [shortcutPressed, setShortcutPressed] = useState(false);
   const [audioInputDevices, setAudioInputDevices] = useState<AudioInputDeviceOption[]>([]);
   const [audioInputDevicesLoading, setAudioInputDevicesLoading] = useState(false);
   const [debugLogLines, setDebugLogLines] = useState<string[]>([]);
@@ -305,14 +301,11 @@ export default function App() {
     };
   }, []);
 
-  const flashShortcutPreview = (display: string) => {
-    setShortcutFeedback(`快捷键已响应：${display}`);
-    setShortcutPressed(true);
+  const flashShortcutPreview = () => {
     if (shortcutPreviewTimeoutRef.current !== null) {
       window.clearTimeout(shortcutPreviewTimeoutRef.current);
     }
     shortcutPreviewTimeoutRef.current = window.setTimeout(() => {
-      setShortcutPressed(false);
       shortcutPreviewTimeoutRef.current = null;
     }, 800);
   };
@@ -351,21 +344,24 @@ export default function App() {
     void window.volo.getRuntimeConfig().then((res) => {
       if (!res?.ok || !res.config) return;
       const config = res.config as Partial<RuntimeConfig>;
-      setRuntimeConfig((prev) => ({ ...prev, ...config }));
-      if (config.translateEnabled !== undefined || config.translateShortcutAccelerator !== undefined) {
-        const ts = config.translateShortcutAccelerator || prev.translateShortcutAccelerator;
-        const td = config.translateShortcutDisplay || prev.translateShortcutDisplay;
-        setTranslateShortcut({
-          accelerator: ts,
-          display: td,
-          key: ts.split('+').pop() || 't',
-          ctrl: ts.includes('Control'),
-          meta: ts.includes('Command'),
-          alt: ts.includes('Alt'),
-          shift: ts.includes('Shift'),
-          kind: 'standard',
-        });
-      }
+      setRuntimeConfig((prev) => {
+        const merged = { ...prev, ...config };
+        if (config.translateEnabled !== undefined || config.translateShortcutAccelerator !== undefined) {
+          const ts = config.translateShortcutAccelerator || prev.translateShortcutAccelerator;
+          const td = config.translateShortcutDisplay || prev.translateShortcutDisplay;
+          setTranslateShortcut({
+            accelerator: ts,
+            display: td,
+            key: ts.split('+').pop() || 't',
+            ctrl: ts.includes('Control'),
+            meta: ts.includes('Command'),
+            alt: ts.includes('Alt'),
+            shift: ts.includes('Shift'),
+            kind: 'standard',
+          });
+        }
+        return merged;
+      });
     });
     void window.volo.getDebugState().then((res) => {
       if (!res?.ok) return;
@@ -524,7 +520,6 @@ export default function App() {
         midBandRef.current = 0;
         highBandRef.current = 0;
         holdingRef.current = false;
-        setShortcutPressed(false);
       }
     });
 
@@ -586,14 +581,12 @@ export default function App() {
       setPermissions(payload);
     });
 
-    const offShortcut = window.volo.onShortcutApplied(({ display, ok, error }) => {
+    const offShortcut = window.volo.onShortcutApplied(({ ok }) => {
       if (ok) {
-        setShortcutFeedback(`快捷键已生效：${display}`);
         setShortcutRegistrationState("success");
         scheduleShortcutRegistrationReset();
         return;
       }
-      setShortcutFeedback(`快捷键注册失败：${error ?? "未知错误"}`);
       setShortcutRegistrationState("error");
       scheduleShortcutRegistrationReset();
     });
@@ -606,8 +599,8 @@ export default function App() {
       }
     });
 
-    const offShortcutPreview = window.volo.onShortcutPreview(({ display }) => {
-      flashShortcutPreview(display);
+    const offShortcutPreview = window.volo.onShortcutPreview(() => {
+      flashShortcutPreview();
     });
 
     const offAudioRequest = window.volo.onAudioRequest(({ sessionId }) => {
@@ -635,7 +628,7 @@ export default function App() {
       setUpdateState(payload);
     });
 
-    const offTranslateShortcutApplied = window.volo.onTranslateShortcutApplied?.(({ ok, error }) => {
+    const offTranslateShortcutApplied = window.volo.onTranslateShortcutApplied?.(({ ok }) => {
       if (ok) {
         setTranslateShortcutRegistrationState("success");
         scheduleShortcutRegistrationReset();
@@ -933,27 +926,15 @@ export default function App() {
 
         if (e.key === "Escape") {
           setCaptureShortcutMode(false);
-          setShortcutPressed(false);
           return;
         }
 
-        if (isModifierOnlyEvent(e)) {
-          const label = (() => {
-            if (e.metaKey && (e.key === "Meta" || e.key === "OS")) return "Command";
-            if (e.ctrlKey && e.key === "Control") return "Control";
-            if (e.altKey && e.key === "Alt") return "Option";
-            if (e.shiftKey && e.key === "Shift") return "Shift";
-            return e.key;
-          })();
-          setShortcutFeedback(`已按下 ${label}，继续按下另一个按键`);
-          return;
-        }
+        if (isModifierOnlyEvent(e)) return;
 
         const next = toDisplayShortcut(e);
         if (!next) return;
 
         setShortcut(next);
-        setShortcutFeedback(`快捷键已更新为 ${next.display}`);
         setCaptureShortcutMode(false);
         return;
       }
@@ -965,7 +946,6 @@ export default function App() {
         e.preventDefault();
         e.stopPropagation();
         holdingRef.current = false;
-        setShortcutPressed(false);
         void window.volo.cancelRecording({ source: "escape" });
         return;
       }
@@ -978,14 +958,13 @@ export default function App() {
       if (section === "home") {
         e.preventDefault();
         e.stopPropagation();
-        flashShortcutPreview(shortcut.display);
+        flashShortcutPreview();
         return;
       }
 
       e.preventDefault();
       e.stopPropagation();
       holdingRef.current = true;
-      setShortcutPressed(true);
       if (window.volo.isMock) {
         if (releaseMode) {
           void window.volo.startShortcutHold({ source: "window-hotkey" });
@@ -1012,7 +991,7 @@ export default function App() {
         if (!next) return;
 
         setTranslateShortcut(next);
-        setRuntimeConfig({
+        updateRuntimeConfig({
           translateShortcutAccelerator: next.accelerator,
           translateShortcutDisplay: next.display,
         });
@@ -1040,7 +1019,6 @@ export default function App() {
       e.preventDefault();
       e.stopPropagation();
       holdingRef.current = false;
-      setShortcutPressed(false);
       if (runtimeConfig.shortcutFinishMode === "release") {
         void window.volo.endShortcutHold({ source: "window-hotkey" });
       }
@@ -1049,7 +1027,6 @@ export default function App() {
     const onBlur = () => {
       if (holdingRef.current) {
         holdingRef.current = false;
-        setShortcutPressed(false);
         if (runtimeConfig.shortcutFinishMode === "release") {
           void window.volo.endShortcutHold({ source: "window-hotkey" });
         }
@@ -1287,9 +1264,6 @@ export default function App() {
     void window.volo.openPermissions({ kind });
   };
 
-  const isShortcutActive =
-    shortcutPressed || stage === "arming" || stage === "recording";
-
   return (
     <div className="h-screen overflow-hidden bg-[#f4eee6] text-stone-900">
       <div className="mx-auto flex h-full max-w-[1420px] flex-col px-6 pb-6">
@@ -1360,13 +1334,10 @@ export default function App() {
                     shortcut={shortcut}
                     platform={platform}
                     captureShortcutMode={captureShortcutMode}
-                    shortcutFeedback={shortcutFeedback}
                     runtimeConfig={runtimeConfig}
                     audioInputDevices={audioInputDevices}
                     audioInputDevicesLoading={audioInputDevicesLoading}
                     microphonePermission={permissions.microphone}
-                    stage={stage}
-                    isShortcutActive={isShortcutActive}
                     registrationState={shortcutRegistrationState}
                     translateShortcut={translateShortcut}
                     captureTranslateShortcutMode={captureTranslateShortcutMode}

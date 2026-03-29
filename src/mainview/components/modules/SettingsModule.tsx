@@ -1,5 +1,4 @@
 import { useState } from "react";
-import type { VoiceStage } from "../../../shared/voiceRpc";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,13 +24,12 @@ import {
   TEXT_REFINE_PROVIDER_OPTIONS,
   type TextRefineProvider,
 } from "../../lib/textRefineProvider";
-import { TRANSLATE_TARGET_LANGUAGES, DEFAULT_TRANSLATE_PROMPT, TRANSLATE_PROMPT_PRESETS } from "../../constants";
+import { TRANSLATE_TARGET_LANGUAGES, TRANSLATE_PROMPT_PRESETS } from "../../constants";
 import type {
   AudioInputDeviceOption,
   PermissionStatus,
   RuntimeConfig,
   ShortcutConfig,
-  ShortcutFinishMode,
 } from "../../types";
 
 const DEFAULT_AUDIO_INPUT_VALUE = "__volo_default_audio_input__";
@@ -40,13 +38,10 @@ type SettingsModuleProps = {
   shortcut: ShortcutConfig;
   platform?: string;
   captureShortcutMode: boolean;
-  shortcutFeedback: string;
   runtimeConfig: RuntimeConfig;
   audioInputDevices: AudioInputDeviceOption[];
   audioInputDevicesLoading: boolean;
   microphonePermission: PermissionStatus;
-  stage: VoiceStage;
-  isShortcutActive: boolean;
   registrationState: "idle" | "success" | "error";
   translateShortcut: ShortcutConfig;
   captureTranslateShortcutMode: boolean;
@@ -80,13 +75,10 @@ export function SettingsModule({
   shortcut,
   platform = "web",
   captureShortcutMode,
-  shortcutFeedback,
   runtimeConfig,
   audioInputDevices,
   audioInputDevicesLoading,
   microphonePermission,
-  stage,
-  isShortcutActive,
   registrationState,
   translateShortcut,
   captureTranslateShortcutMode,
@@ -146,7 +138,7 @@ export function SettingsModule({
   };
 
   const shortcutFinishOptions: Array<{
-    value: ShortcutFinishMode;
+    value: "release" | "press-again";
     title: string;
     description: string;
   }> = [

@@ -96,6 +96,11 @@ function ensureVoloMock() {
     textRefineBaseUrl: activeTextRefineConfig.baseUrl,
     textRefineModel: activeTextRefineConfig.model,
     textRefinePrompt: DEFAULT_TEXT_REFINE_PROMPT,
+    translateEnabled: false,
+    translateShortcutAccelerator: "Alt+Shift+T",
+    translateShortcutDisplay: "Option + Shift + T",
+    translateTargetLanguage: "English",
+    translatePrompt: "",
   };
 
   const statusListeners = new Set<
@@ -194,6 +199,9 @@ function ensureVoloMock() {
       notifyShortcut(payload.accelerator, payload.display);
       return { ok: true };
     },
+    async setTranslateShortcut() {
+      return { ok: true };
+    },
     async beginShortcutCapture() {
       return { ok: true };
     },
@@ -213,6 +221,9 @@ function ensureVoloMock() {
         return { ok: true };
       }
       stopRecording();
+      return { ok: true };
+    },
+    async endTranslateHold() {
       return { ok: true };
     },
     async cancelRecording() {
@@ -344,6 +355,9 @@ function ensureVoloMock() {
     onShortcutPreview(handler) {
       shortcutPreviewListeners.add(handler);
       return () => shortcutPreviewListeners.delete(handler);
+    },
+    onTranslateShortcutApplied() {
+      return () => {};
     },
     onDebugLogEntry(handler) {
       debugLogListeners.add(handler);
