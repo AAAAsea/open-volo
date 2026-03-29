@@ -6,6 +6,8 @@ This project loosely follows Keep a Changelog and uses semantic version tags suc
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-03-29
+
 ### Fixed
 
 - Fixed macOS in-app install flow so clicking `退出并安装` now goes through `electron-updater.quitAndInstall()` instead of only quitting the app.

@@ -1,6 +1,6 @@
 {
   "name": "open-volo",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Open-source desktop voice input app for macOS and Windows.",
   "repository": {
     "type": "git",
