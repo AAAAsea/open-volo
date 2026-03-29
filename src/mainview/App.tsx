@@ -1087,39 +1087,40 @@ export default function App() {
         "asrCompatibleModel" in patch;
 
       if (touchedAsrFields) {
+        const currentProviderConfig = nextAsrProviderConfigs[nextAsrProvider] ?? {};
         nextAsrProviderConfigs[nextAsrProvider] = {
-          ...nextAsrProviderConfigs[nextAsrProvider],
-          appId: "asrAppId" in patch ? String(patch.asrAppId ?? "") : prev.asrAppId,
+          ...currentProviderConfig,
+          appId: "asrAppId" in patch ? String(patch.asrAppId ?? "") : currentProviderConfig.appId,
           accessToken:
-            "asrAccessToken" in patch ? String(patch.asrAccessToken ?? "") : prev.asrAccessToken,
+            "asrAccessToken" in patch ? String(patch.asrAccessToken ?? "") : currentProviderConfig.accessToken,
           accessSecret:
-            "asrAccessSecret" in patch ? String(patch.asrAccessSecret ?? "") : prev.asrAccessSecret,
-          cluster: "asrCluster" in patch ? String(patch.asrCluster ?? "") : prev.asrCluster,
-          authMethod: "asrAuthMethod" in patch ? String(patch.asrAuthMethod ?? "") : prev.asrAuthMethod,
-          wsUrl: "asrWsUrl" in patch ? String(patch.asrWsUrl ?? "") : prev.asrWsUrl,
-          resourceId: "asrResourceId" in patch ? String(patch.asrResourceId ?? "") : prev.asrResourceId,
-          flashUrl: "asrFlashUrl" in patch ? String(patch.asrFlashUrl ?? "") : prev.asrFlashUrl,
-          language: "asrLanguage" in patch ? String(patch.asrLanguage ?? "") : prev.asrLanguage,
+            "asrAccessSecret" in patch ? String(patch.asrAccessSecret ?? "") : currentProviderConfig.accessSecret,
+          cluster: "asrCluster" in patch ? String(patch.asrCluster ?? "") : currentProviderConfig.cluster,
+          authMethod: "asrAuthMethod" in patch ? String(patch.asrAuthMethod ?? "") : currentProviderConfig.authMethod,
+          wsUrl: "asrWsUrl" in patch ? String(patch.asrWsUrl ?? "") : currentProviderConfig.wsUrl,
+          resourceId: "asrResourceId" in patch ? String(patch.asrResourceId ?? "") : currentProviderConfig.resourceId,
+          flashUrl: "asrFlashUrl" in patch ? String(patch.asrFlashUrl ?? "") : currentProviderConfig.flashUrl,
+          language: "asrLanguage" in patch ? String(patch.asrLanguage ?? "") : currentProviderConfig.language,
           modelVersion:
-            "asrModelVersion" in patch ? String(patch.asrModelVersion ?? "") : prev.asrModelVersion,
-          ssdVersion: "asrSsdVersion" in patch ? String(patch.asrSsdVersion ?? "") : prev.asrSsdVersion,
+            "asrModelVersion" in patch ? String(patch.asrModelVersion ?? "") : currentProviderConfig.modelVersion,
+          ssdVersion: "asrSsdVersion" in patch ? String(patch.asrSsdVersion ?? "") : currentProviderConfig.ssdVersion,
           commonWords: "asrCommonWords" in patch ? patch.asrCommonWords ?? [] : prev.asrCommonWords,
           enableChannelSplit:
-            "asrEnableChannelSplit" in patch ? Boolean(patch.asrEnableChannelSplit) : prev.asrEnableChannelSplit,
-          enableDdc: "asrEnableDdc" in patch ? Boolean(patch.asrEnableDdc) : prev.asrEnableDdc,
+            "asrEnableChannelSplit" in patch ? Boolean(patch.asrEnableChannelSplit) : currentProviderConfig.enableChannelSplit,
+          enableDdc: "asrEnableDdc" in patch ? Boolean(patch.asrEnableDdc) : currentProviderConfig.enableDdc,
           enableSpeakerInfo:
-            "asrEnableSpeakerInfo" in patch ? Boolean(patch.asrEnableSpeakerInfo) : prev.asrEnableSpeakerInfo,
-          enablePunc: "asrEnablePunc" in patch ? Boolean(patch.asrEnablePunc) : prev.asrEnablePunc,
-          enableItn: "asrEnableItn" in patch ? Boolean(patch.asrEnableItn) : prev.asrEnableItn,
+            "asrEnableSpeakerInfo" in patch ? Boolean(patch.asrEnableSpeakerInfo) : currentProviderConfig.enableSpeakerInfo,
+          enablePunc: "asrEnablePunc" in patch ? Boolean(patch.asrEnablePunc) : currentProviderConfig.enablePunc,
+          enableItn: "asrEnableItn" in patch ? Boolean(patch.asrEnableItn) : currentProviderConfig.enableItn,
           boostingTableName:
-            "asrBoostingTableName" in patch ? String(patch.asrBoostingTableName ?? "") : prev.asrBoostingTableName,
+            "asrBoostingTableName" in patch ? String(patch.asrBoostingTableName ?? "") : currentProviderConfig.boostingTableName,
           correctTableName:
-            "asrCorrectTableName" in patch ? String(patch.asrCorrectTableName ?? "") : prev.asrCorrectTableName,
-          context: "asrContext" in patch ? String(patch.asrContext ?? "") : prev.asrContext,
-          apiKey: "asrApiKey" in patch ? String(patch.asrApiKey ?? "") : prev.asrApiKey,
-          baseUrl: "asrBaseUrl" in patch ? String(patch.asrBaseUrl ?? "") : prev.asrBaseUrl,
+            "asrCorrectTableName" in patch ? String(patch.asrCorrectTableName ?? "") : currentProviderConfig.correctTableName,
+          context: "asrContext" in patch ? String(patch.asrContext ?? "") : currentProviderConfig.context,
+          apiKey: "asrApiKey" in patch ? String(patch.asrApiKey ?? "") : currentProviderConfig.apiKey,
+          baseUrl: "asrBaseUrl" in patch ? String(patch.asrBaseUrl ?? "") : currentProviderConfig.baseUrl,
           compatibleModel:
-            "asrCompatibleModel" in patch ? String(patch.asrCompatibleModel ?? "") : prev.asrCompatibleModel,
+            "asrCompatibleModel" in patch ? String(patch.asrCompatibleModel ?? "") : currentProviderConfig.compatibleModel,
         };
       }
 
@@ -1135,11 +1136,13 @@ export default function App() {
         "textRefineModel" in patch;
 
       if (touchedTextRefineFields) {
+        const currentProviderConfig = nextProviderConfigs[nextProvider] ?? {};
         nextProviderConfigs[nextProvider] = {
-          apiKey: "textRefineApiKey" in patch ? String(patch.textRefineApiKey ?? "") : prev.textRefineApiKey,
+          ...currentProviderConfig,
+          apiKey: "textRefineApiKey" in patch ? String(patch.textRefineApiKey ?? "") : currentProviderConfig.apiKey,
           baseUrl:
-            "textRefineBaseUrl" in patch ? String(patch.textRefineBaseUrl ?? "") : prev.textRefineBaseUrl,
-          model: "textRefineModel" in patch ? String(patch.textRefineModel ?? "") : prev.textRefineModel,
+            "textRefineBaseUrl" in patch ? String(patch.textRefineBaseUrl ?? "") : currentProviderConfig.baseUrl,
+          model: "textRefineModel" in patch ? String(patch.textRefineModel ?? "") : currentProviderConfig.model,
         };
       }
 
