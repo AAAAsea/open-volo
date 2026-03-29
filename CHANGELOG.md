@@ -6,6 +6,13 @@ This project loosely follows Keep a Changelog and uses semantic version tags suc
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-03-29
+
+### Fixed
+
+- Fixed config field clearing bug: editing one field no longer resets other fields
+- Fixed TypeScript errors in CI checks (removed unused variables, fixed type definitions)
+
 ## [0.2.1] - 2026-03-28
 
 ### Added
