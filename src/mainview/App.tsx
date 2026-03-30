@@ -148,7 +148,7 @@ export default function App() {
     textRefineBaseUrl: activeTextRefineConfig.baseUrl,
     textRefineModel: activeTextRefineConfig.model,
     textRefinePrompt: DEFAULT_TEXT_REFINE_PROMPT,
-    translateEnabled: false,
+    translateEnabled: true,
     translateShortcutAccelerator: DEFAULT_TRANSLATE_SHORTCUT(platform).accelerator,
     translateShortcutDisplay: DEFAULT_TRANSLATE_SHORTCUT(platform).display,
     translateTargetLanguage: "English",
@@ -1147,6 +1147,10 @@ export default function App() {
       }
 
       const activeProviderConfig = getTextRefineProviderConfig(nextProviderConfigs, nextProvider);
+      const nextTranslateShortcutAccelerator =
+        "translateShortcutAccelerator" in patch
+          ? String(patch.translateShortcutAccelerator ?? "")
+          : prev.translateShortcutAccelerator;
       const next = {
         ...prev,
         ...patch,
@@ -1209,6 +1213,7 @@ export default function App() {
           "textRefineBaseUrl" in patch ? String(patch.textRefineBaseUrl ?? "") : activeProviderConfig.baseUrl,
         textRefineModel:
           "textRefineModel" in patch ? String(patch.textRefineModel ?? "") : activeProviderConfig.model,
+        translateEnabled: Boolean(nextTranslateShortcutAccelerator.trim()),
       };
       void window.volo.setRuntimeConfig(next);
       return next;

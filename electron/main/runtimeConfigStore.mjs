@@ -23,6 +23,7 @@ export function createRuntimeConfigStore({
   let runtimeConfig = null;
 
   const DEFAULT_TEXT_REFINE_PROMPT = defaultPrompt;
+  const hasTranslateShortcut = (value) => Boolean(String(value ?? '').trim());
 
   const loadEnvFile = () => {
     if (envFileLoaded) return;
@@ -125,6 +126,10 @@ export function createRuntimeConfigStore({
       compatibleModel: getEnvValue('VOLO_ASR_COMPATIBLE_MODEL') || '',
     };
     const activeAsrConfig = getAsrProviderConfig(asrProviderConfigs, asrProvider);
+    const translateShortcutAccelerator =
+      getEnvValue('VOLO_TRANSLATE_SHORTCUT') || (isMac ? 'Alt+Shift+T' : 'Control+Shift+T');
+    const translateShortcutDisplay =
+      getEnvValue('VOLO_TRANSLATE_SHORTCUT_DISPLAY') || (isMac ? 'Option + Shift + T' : 'Ctrl + Shift + T');
     return {
       cancelShortcut: 'Escape',
       shortcutFinishMode: shortcutFinishModeRaw === 'press-again' ? 'press-again' : 'release',
@@ -163,9 +168,9 @@ export function createRuntimeConfigStore({
       textRefineBaseUrl: activeTextRefineConfig.baseUrl,
       textRefineModel: activeTextRefineConfig.model,
       textRefinePrompt: textRefinePromptRaw || DEFAULT_TEXT_REFINE_PROMPT,
-      translateEnabled: getEnvValue('VOLO_TRANSLATE_ENABLED') === '1',
-      translateShortcutAccelerator: getEnvValue('VOLO_TRANSLATE_SHORTCUT') || (isMac ? 'Alt+Shift+T' : 'Control+Shift+T'),
-      translateShortcutDisplay: getEnvValue('VOLO_TRANSLATE_SHORTCUT_DISPLAY') || (isMac ? 'Option + Shift + T' : 'Ctrl + Shift + T'),
+      translateEnabled: hasTranslateShortcut(translateShortcutAccelerator),
+      translateShortcutAccelerator,
+      translateShortcutDisplay,
       translateTargetLanguage: getEnvValue('VOLO_TRANSLATE_TARGET_LANGUAGE') || 'English',
       translatePrompt: getEnvValue('VOLO_TRANSLATE_PROMPT') || '',
     };
@@ -216,6 +221,14 @@ export function createRuntimeConfigStore({
       typeof payload.asrEnablePunc === 'boolean' ? payload.asrEnablePunc : defaultRuntimeConfig.asrEnablePunc;
     const asrEnableItn =
       typeof payload.asrEnableItn === 'boolean' ? payload.asrEnableItn : defaultRuntimeConfig.asrEnableItn;
+    const translateShortcutAccelerator = normalizeString(
+      payload.translateShortcutAccelerator,
+      defaultRuntimeConfig.translateShortcutAccelerator,
+    );
+    const translateShortcutDisplay = normalizeString(
+      payload.translateShortcutDisplay,
+      defaultRuntimeConfig.translateShortcutDisplay,
+    );
     const asrProvider = normalizeAsrProvider(payload.asrProvider);
     const defaultAsrProviderConfigs = createDefaultAsrProviderConfigs();
     const payloadAsrProviderConfigs =
@@ -373,18 +386,9 @@ export function createRuntimeConfigStore({
       textRefineBaseUrl: activeTextRefineConfig.baseUrl,
       textRefineModel: activeTextRefineConfig.model,
       textRefinePrompt: normalizeString(payload.textRefinePrompt, defaultRuntimeConfig.textRefinePrompt),
-      translateEnabled:
-        typeof payload.translateEnabled === 'boolean'
-          ? payload.translateEnabled
-          : defaultRuntimeConfig.translateEnabled,
-      translateShortcutAccelerator: normalizeString(
-        payload.translateShortcutAccelerator,
-        defaultRuntimeConfig.translateShortcutAccelerator,
-      ),
-      translateShortcutDisplay: normalizeString(
-        payload.translateShortcutDisplay,
-        defaultRuntimeConfig.translateShortcutDisplay,
-      ),
+      translateEnabled: hasTranslateShortcut(translateShortcutAccelerator),
+      translateShortcutAccelerator,
+      translateShortcutDisplay,
       translateTargetLanguage: normalizeString(
         payload.translateTargetLanguage,
         defaultRuntimeConfig.translateTargetLanguage,
@@ -428,7 +432,7 @@ export function createRuntimeConfigStore({
     env.VOLO_TEXT_REFINE_BASE_URL = config.textRefineBaseUrl;
     env.VOLO_TEXT_REFINE_MODEL = config.textRefineModel;
     env.VOLO_TEXT_REFINE_PROMPT = config.textRefinePrompt;
-    env.VOLO_TRANSLATE_ENABLED = config.translateEnabled ? '1' : '0';
+    env.VOLO_TRANSLATE_ENABLED = hasTranslateShortcut(config.translateShortcutAccelerator) ? '1' : '0';
     env.VOLO_TRANSLATE_SHORTCUT = config.translateShortcutAccelerator;
     env.VOLO_TRANSLATE_SHORTCUT_DISPLAY = config.translateShortcutDisplay;
     env.VOLO_TRANSLATE_TARGET_LANGUAGE = config.translateTargetLanguage;

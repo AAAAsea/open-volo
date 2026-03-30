@@ -707,7 +707,7 @@ async function syncFnShortcutMonitor() {
 
 function loadTranslateShortcutFromConfig() {
   const config = runtimeConfigStore.getConfig();
-  if (!config.translateEnabled || !config.translateShortcutAccelerator) {
+  if (!String(config.translateShortcutAccelerator || '').trim()) {
     translateShortcut = null;
     return;
   }
@@ -730,7 +730,7 @@ function reRegisterTranslateShortcut() {
   translateShortcut = null;
 
   const config = runtimeConfigStore.getConfig();
-  if (!config.translateEnabled || !config.translateShortcutAccelerator) return;
+  if (!String(config.translateShortcutAccelerator || '').trim()) return;
 
   translateShortcut = {
     accelerator: config.translateShortcutAccelerator,

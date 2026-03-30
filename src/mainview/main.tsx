@@ -96,7 +96,7 @@ function ensureVoloMock() {
     textRefineBaseUrl: activeTextRefineConfig.baseUrl,
     textRefineModel: activeTextRefineConfig.model,
     textRefinePrompt: DEFAULT_TEXT_REFINE_PROMPT,
-    translateEnabled: false,
+    translateEnabled: true,
     translateShortcutAccelerator: "Alt+Shift+T",
     translateShortcutDisplay: "Option + Shift + T",
     translateTargetLanguage: "English",
