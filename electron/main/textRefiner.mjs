@@ -59,6 +59,10 @@ function getRefineConfig() {
   return { apiKey, baseUrl, model, enabled, prompt, provider };
 }
 
+function hasTranslateShortcutConfigured() {
+  return Boolean(getEnvValue('VOLO_TRANSLATE_SHORTCUT').trim());
+}
+
 function buildMessages(inputText, systemPrompt) {
   return [
     {
@@ -125,7 +129,7 @@ export async function refineTranscriptText(inputText, options = {}) {
   const config = getRefineConfig();
 
   const enabled = isTranslate
-    ? (getEnvValue('VOLO_TRANSLATE_ENABLED') === '1')
+    ? (getEnvValue('VOLO_TRANSLATE_ENABLED') === '1' || hasTranslateShortcutConfigured())
     : config.enabled;
 
   if (!enabled) {
