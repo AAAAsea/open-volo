@@ -6,6 +6,12 @@ This project loosely follows Keep a Changelog and uses semantic version tags suc
 
 ## [Unreleased]
 
+## [0.2.4] - 2026-03-30
+
+### Fixed
+
+- Fixed translate mode activation so configuring a translate shortcut now enables the feature without requiring a separate hidden toggle.
+
 ## [0.2.3] - 2026-03-29
 
 ### Fixed
